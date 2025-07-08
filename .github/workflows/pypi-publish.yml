@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for trusted publishing
     
     steps:
     - uses: actions/checkout@v4
@@ -36,5 +35,6 @@ jobs:
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
         repository-url: https://upload.pypi.org/legacy/
         print-hash: true
