@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "heaven-bml": {
+      "command": "python",
+      "args": ["-m", "bml_mcp_prototype", "--default-repo", "your-org/your-repo"],
+      "env": {
+        "GITHUB_TOKEN": "your_github_token_here"
+      }
+    }
+  }
+}

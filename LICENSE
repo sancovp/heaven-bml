@@ -1,0 +1,42 @@
+HEAVEN BML System License
+
+Copyright (c) 2025 HEAVEN Development Team
+
+Permission is hereby granted to any person obtaining a copy of this software 
+and associated documentation files (the "Software"), to use, copy, modify, 
+and distribute the Software for personal and commercial purposes, subject to 
+the following conditions:
+
+PERMITTED USES:
+- Personal projects and development
+- Commercial use within your organization
+- Integration with existing products and services
+- Modification and enhancement for internal use
+- Distribution with proper attribution
+
+RESTRICTED USES:
+- Rebranding, white-labeling, or removing attribution without written permission
+- Offering the Software as a competing Software-as-a-Service without licensing agreement
+- Creating derivative works that directly compete with HEAVEN products
+- Sublicensing commercial rights to third parties
+
+ATTRIBUTION REQUIREMENT:
+Any public-facing application, documentation, or service using this Software 
+must include one of the following attributions in a visible location:
+
+"Powered by HEAVEN BML System"
+OR
+"Built with HEAVEN Project Management"
+OR 
+Link to https://github.com/sancovp/heaven-bml-system
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+
+For commercial licensing, enterprise support, or permission to use without 
+attribution requirements, contact: license@heaven-dev.com
