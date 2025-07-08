@@ -235,36 +235,125 @@ class BMLServer:
         return {"repo": repo, "status": status, "issues": serializable_issues}
     
     def install_bml_workflows(self, target_repo: str) -> str:
-        """Install BML automation workflows in target repository using GitHub CLI"""
+        """Install BML automation workflows in target repository using direct file embedding"""
         import subprocess
         import tempfile
         import os
+        import base64
+        
+        # Workflow files to install
+        workflow_files = {
+            "bml-automation.yml": """name: HEAVEN BML System Automation
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+
+jobs:
+  bml-automation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Auto-label new issues
+      if: github.event.action == 'opened'
+      run: |
+        # Add default status-backlog label to new issues
+        gh issue edit ${{ github.event.issue.number }} --add-label "status-backlog"
+        echo "Added status-backlog label to issue #${{ github.event.issue.number }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  attribution-check:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    
+    steps:
+    - name: Add BML Attribution
+      run: |
+        # Add attribution comment to new issues
+        gh issue comment ${{ github.event.issue.number }} --body "**Powered by HEAVEN BML System** | [Learn more](https://github.com/sancovp/heaven-bml-system)"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+""",
+            "promote-idea-to-issue.yml": """name: Promote Ideas to Issues
+
+on:
+  push:
+    paths:
+      - 'ideas/**'
+
+jobs:
+  promote-ideas:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Create issues from idea files
+      run: |
+        for file in ideas/*.md; do
+          if [ -f "$file" ]; then
+            title=$(head -n 1 "$file" | sed 's/^# *//')
+            body=$(tail -n +2 "$file")
+            gh issue create --title "💡 $title" --body "$body" --label "status-backlog,idea-promoted"
+            echo "Created issue from $file"
+          fi
+        done
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+"""
+        }
         
         try:
-            # Clone the target repo temporarily
-            with tempfile.TemporaryDirectory() as temp_dir:
-                clone_path = os.path.join(temp_dir, "repo")
+            # Check if repo exists first
+            check_result = subprocess.run(f'gh repo view {target_repo}', 
+                                        shell=True, capture_output=True, text=True)
+            if check_result.returncode != 0:
+                return f"❌ Repository {target_repo} not found or no access"
+            
+            # Install workflows directly via GitHub API
+            for filename, content in workflow_files.items():
+                # Encode content
+                content_b64 = base64.b64encode(content.encode()).decode()
                 
-                # Clone the repository
-                subprocess.run(f'gh repo clone {target_repo} "{clone_path}"', 
-                             shell=True, check=True, capture_output=True)
-                
-                # Use the console script to install workflows
-                result = subprocess.run(f'install-bml-workflows --repo "{clone_path}" --repo-name "{target_repo}"', 
-                                      shell=True, capture_output=True, text=True)
+                # Create workflow file
+                cmd = f'gh api repos/{target_repo}/contents/.github/workflows/{filename} -f message="🤖 Install HEAVEN BML workflow: {filename}" -f content="{content_b64}"'
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
                 
                 if result.returncode != 0:
-                    error_info = f"stdout: {result.stdout}, stderr: {result.stderr}"
-                    return f"❌ Console script failed: {error_info}"
-                
-                # Commit and push changes
-                os.chdir(clone_path)
-                subprocess.run('git add .', shell=True, check=True)
-                subprocess.run('git commit -m "🤖 Install HEAVEN BML automation workflows"', 
-                             shell=True, check=True)
-                subprocess.run('git push', shell=True, check=True)
-                
-                return f"✅ Successfully installed BML workflows in {target_repo}"
+                    # File might exist, try updating
+                    get_cmd = f'gh api repos/{target_repo}/contents/.github/workflows/{filename}'
+                    get_result = subprocess.run(get_cmd, shell=True, capture_output=True, text=True)
+                    if get_result.returncode == 0:
+                        import json
+                        file_info = json.loads(get_result.stdout)
+                        sha = file_info['sha']
+                        update_cmd = f'gh api repos/{target_repo}/contents/.github/workflows/{filename} -f message="🤖 Update HEAVEN BML workflow: {filename}" -f content="{content_b64}" -f sha="{sha}"'
+                        subprocess.run(update_cmd, shell=True, check=True)
+                    else:
+                        return f"❌ Failed to install {filename}: {result.stderr}"
+            
+            # Create ideas directory
+            ideas_content = """# Welcome to HEAVEN BML System!
+
+This idea will be automatically converted to a GitHub issue by the BML workflows.
+
+## What is BML?
+
+Build-Measure-Learn project management using GitHub's native features:
+- Tree notation priorities (priority-1.2.3...)
+- Automated kanban workflow  
+- AI agent integration
+- Continuous improvement cycles
+
+**Powered by HEAVEN BML System**
+"""
+            ideas_b64 = base64.b64encode(ideas_content.encode()).decode()
+            subprocess.run(f'gh api repos/{target_repo}/contents/ideas/welcome-to-bml.md -f message="🤖 Create ideas directory" -f content="{ideas_b64}"', 
+                         shell=True, capture_output=True)
+            
+            return f"✅ Successfully installed BML workflows in {target_repo} ({len(workflow_files)} files + ideas directory)"
                     
         except Exception as e:
             return f"❌ Error installing workflows: {str(e)}"
