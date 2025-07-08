@@ -393,17 +393,30 @@ def calculate_insertion_priority(issues: List[dict], insert_position: int) -> st
         if before_priority[0] != after_priority[0]:
             return str(before_priority[0] + 1)
         
-        # Same root - need to find space between them
-        # For now, use simple decimal insertion
-        before_num = float('.'.join(map(str, before_priority)))
-        after_num = float('.'.join(map(str, after_priority)))
-        mid_num = (before_num + after_num) / 2
+        # Handle tree notation properly
+        # Convert [1,1,1] to comparable numbers
+        def tree_to_comparable(priority_list):
+            # Convert [1,1,1] to 1.0101 for comparison
+            result = priority_list[0]
+            for i, part in enumerate(priority_list[1:], 1):
+                result += part / (100 ** i)
+            return result
         
-        # Convert back to tree notation
-        if mid_num == int(mid_num):
-            return str(int(mid_num))
+        before_comparable = tree_to_comparable(before_priority)
+        after_comparable = tree_to_comparable(after_priority)
+        
+        # Find midpoint
+        mid_comparable = (before_comparable + after_comparable) / 2
+        
+        # Simple strategy: increment the last part of the before_priority
+        # So between 1.1.1 and 1.1.3, insert 1.1.2
+        if len(before_priority) == len(after_priority):
+            new_priority = before_priority.copy()
+            new_priority[-1] += 1
+            return '.'.join(map(str, new_priority))
         else:
-            return str(mid_num)
+            # Different depths, use simpler approach
+            return f"{before_priority[0]}.{before_priority[1] if len(before_priority) > 1 else 1}.5"
     
     # Fallback
     return str(parse_tree_priority(after_issue['priority'])[0])
