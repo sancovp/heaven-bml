@@ -401,11 +401,14 @@ def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     """Move issue to position above target issue."""
     all_issues = get_all_prioritized_issues(repo)
     
+    # Filter to only issues that actually have priorities (not "none")
+    prioritized_only = [issue for issue in all_issues if issue['priority'] != 'none']
+    
     # Find and remove the issue we're moving
     moving_issue = None
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(issue_id):
-            moving_issue = all_issues.pop(i)
+            moving_issue = prioritized_only.pop(i)
             break
     
     if not moving_issue:
@@ -413,7 +416,7 @@ def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     
     # Find target position
     target_position = None
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(target_issue_id):
             target_position = i
             break
@@ -422,10 +425,10 @@ def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
         raise ValueError(f"Target issue #{target_issue_id} not found")
     
     # Insert above target
-    all_issues.insert(target_position, moving_issue)
+    prioritized_only.insert(target_position, moving_issue)
     
-    # Renumber everything
-    renumber_all_priorities(all_issues, repo)
+    # Renumber only the prioritized issues
+    renumber_all_priorities(prioritized_only, repo)
     
     # Return new priority
     new_priority = f"{target_position + 1}"
@@ -436,11 +439,14 @@ def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
     """Move issue to position below target issue."""
     all_issues = get_all_prioritized_issues(repo)
     
+    # Filter to only issues that actually have priorities (not "none")
+    prioritized_only = [issue for issue in all_issues if issue['priority'] != 'none']
+    
     # Find and remove the issue we're moving
     moving_issue = None
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(issue_id):
-            moving_issue = all_issues.pop(i)
+            moving_issue = prioritized_only.pop(i)
             break
     
     if not moving_issue:
@@ -448,7 +454,7 @@ def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
     
     # Find target position
     target_position = None
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(target_issue_id):
             target_position = i + 1  # Insert after target
             break
@@ -457,10 +463,10 @@ def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
         raise ValueError(f"Target issue #{target_issue_id} not found")
     
     # Insert below target
-    all_issues.insert(target_position, moving_issue)
+    prioritized_only.insert(target_position, moving_issue)
     
-    # Renumber everything
-    renumber_all_priorities(all_issues, repo)
+    # Renumber only the prioritized issues
+    renumber_all_priorities(prioritized_only, repo)
     
     # Return new priority
     new_priority = f"{target_position + 1}"
@@ -471,11 +477,14 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     """Move issue between two other issues."""
     all_issues = get_all_prioritized_issues(repo)
     
+    # Filter to only issues that actually have priorities (not "none")
+    prioritized_only = [issue for issue in all_issues if issue['priority'] != 'none']
+    
     # Find and remove the issue we're moving
     moving_issue = None
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(issue_id):
-            moving_issue = all_issues.pop(i)
+            moving_issue = prioritized_only.pop(i)
             break
     
     if not moving_issue:
@@ -485,7 +494,7 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     above_position = None
     below_position = None
     
-    for i, issue in enumerate(all_issues):
+    for i, issue in enumerate(prioritized_only):
         if str(issue['number']) == str(above_issue_id):
             above_position = i
         elif str(issue['number']) == str(below_issue_id):
@@ -501,10 +510,10 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     
     # Insert between them (right after the above issue)
     insert_position = above_position + 1
-    all_issues.insert(insert_position, moving_issue)
+    prioritized_only.insert(insert_position, moving_issue)
     
-    # Renumber everything
-    renumber_all_priorities(all_issues, repo)
+    # Renumber only the prioritized issues
+    renumber_all_priorities(prioritized_only, repo)
     
     # Return new priority (will be determined by renumbering)
     new_priority = f"{insert_position + 1}"
