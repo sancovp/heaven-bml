@@ -230,7 +230,9 @@ class BMLServer:
         """Get issues in specific kanban lane"""
         repo = repo or self.default_repo
         issues = view_lane(repo, status)
-        return {"repo": repo, "status": status, "issues": issues}
+        # Convert Issue objects to serializable dictionaries
+        serializable_issues = [{"number": issue.number, "title": issue.title} for issue in issues]
+        return {"repo": repo, "status": status, "issues": serializable_issues}
     
     def install_bml_workflows(self, target_repo: str) -> str:
         """Install BML automation workflows in target repository using GitHub CLI"""
@@ -239,7 +241,10 @@ class BMLServer:
         import os
         
         try:
-            # Import the existing install function
+            # Import the existing install function using sys.path
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
             from setup_scripts.install_bml_workflows import install_bml_workflows as install_local
             
             # Clone the target repo temporarily
@@ -273,10 +278,10 @@ class BMLServer:
         import subprocess
         
         try:
-            # Create repository
+            # Create repository without cloning initially to avoid permission issues
             visibility = "--private" if private else "--public"
-            cmd = f'gh repo create {repo_name} {visibility} --description "{description}" --clone'
-            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+            cmd = f'gh repo create {repo_name} {visibility} --description "{description}"'
+            result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
             
             # Install BML workflows in the new repo
             install_result = self.install_bml_workflows(repo_name)
@@ -284,7 +289,8 @@ class BMLServer:
             return f"✅ Created repository {repo_name} | {install_result}"
             
         except subprocess.CalledProcessError as e:
-            return f"❌ Failed to create repository {repo_name}: {e.stderr}"
+            error_msg = e.stderr if e.stderr else e.stdout if hasattr(e, 'stdout') else str(e)
+            return f"❌ Failed to create repository {repo_name}: {error_msg}"
         except Exception as e:
             return f"❌ Error creating repository: {str(e)}"
 
