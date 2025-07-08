@@ -114,7 +114,7 @@ def set_issue_tree_priority(repo: str, issue_number: int, priority: str) -> bool
             if label['name'].startswith('priority-'):
                 subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label["name"]}"', shell=True)
     except Exception as e:
-        print(f"Error removing old priority labels: {e}")
+        # Silently continue - GitHub CLI errors are common during bulk operations
         pass
     
     # Add new priority label
@@ -366,6 +366,12 @@ def renumber_all_priorities(issues: List[dict], repo: str):
     """Assign clean sequential priorities to list of issues, preserving tree structure."""
     import requests
     import os
+    import sys
+    import io
+    
+    # Suppress stdout during bulk operations to reduce noise
+    old_stdout = sys.stdout
+    sys.stdout = io.StringIO()
     
     # Group by tree level 
     root_issues = []
@@ -394,6 +400,9 @@ def renumber_all_priorities(issues: List[dict], repo: str):
                 subtask_priority = f"{new_priority}.{j+1}"
                 set_issue_tree_priority(repo, str(subtask['number']), subtask_priority)
                 subtask['new_priority'] = subtask_priority
+    
+    # Restore stdout
+    sys.stdout = old_stdout
 
 def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     """Move issue to position above target issue."""
