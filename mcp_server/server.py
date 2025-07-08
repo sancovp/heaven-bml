@@ -21,6 +21,7 @@ class BMLTools(str, Enum):
     MOVE_ISSUE_BELOW = "move_issue_below"
     MOVE_ISSUE_BETWEEN = "move_issue_between"
     SET_ISSUE_STATUS = "set_issue_status"
+    SET_ISSUE_PRIORITY = "set_issue_priority"
     VIEW_KANBAN = "view_kanban"
     GET_KANBAN_LANE = "get_kanban_lane"
 
@@ -31,7 +32,8 @@ try:
         get_all_prioritized_issues,
         move_issue_above,
         move_issue_below, 
-        move_issue_between
+        move_issue_between,
+        set_issue_tree_priority
     )
     from heaven_bml.github_kanban import (
         construct_kanban_from_labels,
@@ -198,6 +200,18 @@ class BMLServer:
         """Set issue status (backlog/plan/build/measure/learn/blocked/archived)"""
         repo = repo or self.default_repo
         return set_issue_status(issue_id, status, repo)
+    
+    def set_issue_priority(self, issue_id: str, priority: str, repo: str = None) -> str:
+        """Set tree notation priority (e.g., '1', '1.1', '1.2.3') for hierarchical task organization"""
+        repo = repo or self.default_repo
+        if USING_REAL_FUNCTIONS:
+            success = set_issue_tree_priority(repo, int(issue_id), priority)
+            if success:
+                return f"✅ Set issue #{issue_id} to priority '{priority}' in {repo}"
+            else:
+                return f"❌ Failed to set issue #{issue_id} to priority '{priority}' in {repo}"
+        else:
+            return f"STUB: Set issue {issue_id} to priority {priority} in {repo}"
     
     def view_kanban(self, repo: str = None) -> dict:
         """Get complete kanban board view"""
@@ -385,6 +399,28 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                 },
             ),
             Tool(
+                name=BMLTools.SET_ISSUE_PRIORITY.value,
+                description="Set HEAVEN tree notation priority for hierarchical task organization. Use priorities like '1', '1.1', '1.2.3' to create infinite nesting. Example: priority '1.1' makes it a subtask of priority '1'. Tree notation allows precise ordering: 1 > 1.1 > 1.2 > 1.2.1 > 1.2.2 > 1.3 > 2.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "issue_id": {
+                            "type": "string",
+                            "description": "Issue ID to update",
+                        },
+                        "priority": {
+                            "type": "string",
+                            "description": "Tree notation priority (e.g., '1', '1.1', '1.2.3')",
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": f"GitHub repository (default: {default_repo})",
+                        }
+                    },
+                    "required": ["issue_id", "priority"],
+                },
+            ),
+            Tool(
                 name=BMLTools.VIEW_KANBAN.value,
                 description="Get complete Build-Measure-Learn kanban board with tree notation priorities. Shows all lanes: backlog → plan → build → measure → learn → archived, plus blocked items. Issues sorted by HEAVEN tree notation (1 > 1.1 > 1.2 > 1.2.1).",
                 inputSchema={
@@ -476,6 +512,13 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                     if not all([issue_id, status]):
                         raise ValueError("Missing required arguments: issue_id, status")
                     result = bml_server.set_issue_status(issue_id, status, arguments.get("repo"))
+                
+                case BMLTools.SET_ISSUE_PRIORITY.value:
+                    issue_id = arguments.get("issue_id")
+                    priority = arguments.get("priority")
+                    if not all([issue_id, priority]):
+                        raise ValueError("Missing required arguments: issue_id, priority")
+                    result = bml_server.set_issue_priority(issue_id, priority, arguments.get("repo"))
                 
                 case BMLTools.VIEW_KANBAN.value:
                     result = bml_server.view_kanban(arguments.get("repo"))
