@@ -132,7 +132,14 @@ class BMLServer:
             try:
                 cmd = f'gh issue view {issue_id} --repo {repo} --json number,title,body,labels,state'
                 result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-                issue_data = json.loads(result.stdout)
+                
+                # Debug JSON parsing
+                try:
+                    issue_data = json.loads(result.stdout)
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error in get_issue: {e}")
+                    print(f"Command output: {result.stdout[:500]}...")
+                    return {"repo": repo, "issue_id": issue_id, "error": "JSON parse error"}
                 
                 # Extract status from labels
                 status = 'backlog'  # default

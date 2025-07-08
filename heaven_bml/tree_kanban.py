@@ -239,6 +239,7 @@ def get_all_prioritized_issues(repo: str) -> List[dict]:
     """Get all issues with priorities, sorted by current priority."""
     import requests
     import os
+    import json
     
     headers = {
         'Authorization': f'token {os.environ["GITHUB_TOKEN"]}',
@@ -248,7 +249,14 @@ def get_all_prioritized_issues(repo: str) -> List[dict]:
     try:
         response = requests.get(f'https://api.github.com/repos/{repo}/issues?state=open&per_page=100', headers=headers)
         response.raise_for_status()
-        issues = response.json()
+        
+        # Debug JSON parsing
+        try:
+            issues = response.json()
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
+            print(f"Response text: {response.text[:500]}...")  # First 500 chars
+            return []
         
         prioritized_issues = []
         for issue in issues:
