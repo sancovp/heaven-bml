@@ -431,3 +431,36 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     print(f"Moved issue #{issue_id} between #{above_issue_id} and #{below_issue_id} → priority {new_priority}")
     return new_priority
 
+
+def print_tree_kanban_board(repo: str) -> None:
+    """Print kanban board showing: backlog count, full plan details, build status"""
+    from .github_kanban import construct_kanban_from_labels, get_issue_priority, get_issue_priority_string
+    
+    kanban = construct_kanban_from_labels(repo)
+    
+    # 1. Backlog count only
+    backlog_count = len(kanban.backlog)
+    print(f"Backlog: {backlog_count} items")
+    
+    # 2. Full plan details (titles, numbers, priorities)
+    plan_issues = kanban.plan
+    if plan_issues:
+        print(f"\nPlan ({len(plan_issues)} items):")
+        sorted_plan = sorted(plan_issues, key=lambda issue: get_issue_priority(issue))
+        for issue in sorted_plan:
+            priority = get_issue_priority_string(issue)
+            print(f"  {priority} │ #{issue.number} │ {issue.title}")
+    else:
+        print("\nPlan: empty")
+    
+    # 3. Build status issues
+    build_issues = kanban.build
+    if build_issues:
+        print(f"\nBuild ({len(build_issues)} items):")
+        sorted_build = sorted(build_issues, key=lambda issue: get_issue_priority(issue))
+        for issue in sorted_build:
+            priority = get_issue_priority_string(issue)
+            print(f"  {priority} │ #{issue.number} │ {issue.title}")
+    else:
+        print("\nBuild: empty")
+
