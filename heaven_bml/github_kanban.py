@@ -299,7 +299,7 @@ def create_github_issue_with_status(
     title: str, 
     body: str, 
     status: str = 'backlog',
-    priority: str = 'medium',
+    priority: str = None,
     labels: List[str] = None
 ) -> int:
     """
@@ -346,13 +346,16 @@ def create_github_issue_with_status(
     except subprocess.CalledProcessError as e:
         print(f"Warning: Could not add status label: {e.stderr}")
     
-    # Add priority label
-    try:
-        cmd = f'gh issue edit {issue_number} --repo {repo} --add-label "priority-{priority}"'
-        subprocess.run(cmd, shell=True, check=True)
-        print(f"✅ Added priority-{priority} label")
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not add priority label: {e.stderr}")
+    # Add priority label (only if priority is specified)
+    if priority:
+        try:
+            cmd = f'gh issue edit {issue_number} --repo {repo} --add-label "priority-{priority}"'
+            subprocess.run(cmd, shell=True, check=True)
+            print(f"✅ Added priority-{priority} label")
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Could not add priority label: {e.stderr}")
+    else:
+        print("No priority specified - issue created without priority label")
     
     # Add any additional labels
     if labels:

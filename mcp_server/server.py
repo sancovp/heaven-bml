@@ -166,7 +166,7 @@ class BMLServer:
         if USING_REAL_FUNCTIONS:
             # Use real BML function to create GitHub issue
             from heaven_bml.github_kanban import create_github_issue_with_status
-            issue_id = create_github_issue_with_status(repo, title, body, "backlog")
+            issue_id = create_github_issue_with_status(repo, title, body, "backlog")  # No priority by default
             return {"repo": repo, "title": title, "body": body, "issue_id": issue_id, "created": True}
         else:
             # Stub implementation

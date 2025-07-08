@@ -261,20 +261,20 @@ def get_all_prioritized_issues(repo: str) -> List[dict]:
                     priority_labels.append(label['name'][9:])  # Remove 'priority-' prefix
             
             if priority_labels:
-                # Prefer 0.x format labels over old format (high, medium, low, numbers)
-                numeric_priorities = [p for p in priority_labels if p.startswith('0.')]
+                # Prefer numeric format labels over old format (high, medium, low)
+                numeric_priorities = [p for p in priority_labels if p.replace('.', '').isdigit()]
                 if numeric_priorities:
-                    priority = numeric_priorities[0]  # Take first 0.x priority
+                    priority = numeric_priorities[0]  # Take first numeric priority
                 else:
                     priority = priority_labels[0]  # Fall back to first priority
             
-            if priority:
-                prioritized_issues.append({
-                    'number': issue['number'],
-                    'title': issue['title'],
-                    'priority': priority,
-                    'priority_parsed': parse_tree_priority(priority)
-                })
+            # Include ALL issues, even those without priorities (will get priority "none")
+            prioritized_issues.append({
+                'number': issue['number'],
+                'title': issue['title'],
+                'priority': priority or 'none',
+                'priority_parsed': parse_tree_priority(priority or 'none')
+            })
         
         # Sort by parsed priority
         prioritized_issues.sort(key=lambda x: x['priority_parsed'])
