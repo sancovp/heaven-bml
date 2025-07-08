@@ -12,7 +12,7 @@ pip install heaven-bml
 
 ```python
 # Import BML functions
-from heaven_bml import (
+from python_functions import (
     construct_kanban_from_labels,
     get_all_prioritized_issues,
     move_issue_above,
@@ -59,7 +59,7 @@ python -m mcp_server --default-repo "your-org/your-repo"
 ### 🔄 GitHub Workflow Automation
 ```bash
 # Install BML workflows in your repository
-python -m heaven_bml.setup_scripts.install_bml_workflows --repo your-org/your-repo
+python -m python_functions.setup_scripts.install_bml_workflows --repo your-org/your-repo
 ```
 
 ## Requirements

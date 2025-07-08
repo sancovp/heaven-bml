@@ -4,14 +4,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="heaven-bml",
-    version="1.3.0",
+    name="heaven-bml-system",
+    version="1.0.0",
     author="HEAVEN Development Team",
     author_email="team@heaven-dev.com",
-    description="Build-Measure-Learn GitHub project management for AI agents",
+    description="Universal Build-Measure-Learn project management for AI agents using GitHub",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sancovp/heaven-bml",
+    url="https://github.com/sancovp/heaven-bml-system",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -44,9 +44,10 @@ setup(
     },
     include_package_data=True,
     package_data={
-        "heaven_bml": [
-            "../github_workflows/*.yml",
-            "../examples/*.py",
+        "heaven_bml_system": [
+            "github_workflows/*.yml",
+            "examples/*.py",
+            "docs/*.md",
         ],
     },
 )

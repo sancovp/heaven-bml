@@ -27,13 +27,13 @@ class BMLTools(str, Enum):
 
 # Import real BML functions from heaven-bml-system package
 try:
-    from python_functions.tree_kanban import (
+    from heaven_bml.tree_kanban import (
         get_all_prioritized_issues,
         move_issue_above,
         move_issue_below, 
         move_issue_between
     )
-    from python_functions.github_kanban import (
+    from heaven_bml.github_kanban import (
         construct_kanban_from_labels,
         view_lane
     )
