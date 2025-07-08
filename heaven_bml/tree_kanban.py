@@ -164,35 +164,80 @@ def get_issue_status(repo: str, issue_number: int) -> str:
     except:
         return 'backlog'
 
+def create_status_label_if_needed(repo: str, status: str) -> bool:
+    """Create status label if it doesn't exist"""
+    import subprocess
+    
+    label_name = f'status-{status}'
+    
+    # Check if label exists
+    try:
+        cmd = f'gh api repos/{repo}/labels/{label_name}'
+        subprocess.run(cmd, shell=True, check=True, capture_output=True)
+        return True  # Label exists
+    except subprocess.CalledProcessError:
+        pass  # Label doesn't exist, create it
+    
+    # Create label with status-appropriate color
+    status_colors = {
+        'backlog': '0366d6',    # Blue
+        'plan': '0e8a16',       # Green
+        'build': 'fbca04',      # Yellow
+        'measure': 'd73a49',    # Red
+        'learn': '6f42c1',      # Purple
+        'blocked': 'e99695',    # Light red
+        'archived': '586069'    # Gray
+    }
+    color = status_colors.get(status, '0366d6')
+    
+    try:
+        cmd = f'gh api repos/{repo}/labels -f name="{label_name}" -f color="{color}" -f description="BML status: {status}"'
+        subprocess.run(cmd, shell=True, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to create label {label_name}: {e}")
+        return False
+
 def set_issue_status(repo: str, issue_number: int, status: str) -> bool:
     """Set status label on issue"""
     import subprocess
     import json
     
+    # Create status label if needed
+    if not create_status_label_if_needed(repo, status):
+        print(f"Warning: Could not create status label for {status}")
+    
     try:
-        # Remove existing status labels
-        cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-        
-        # Debug JSON parsing  
-        try:
-            labels_data = json.loads(result.stdout)
-            labels = labels_data['labels']
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error in set_issue_status: {e}")
-            print(f"Command output: {result.stdout[:200]}...")
-            # Continue without removing old labels
-            labels = []
-        
-        for label in labels:
-            if label['name'].startswith('status-'):
-                subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label["name"]}"', shell=True)
-        
-        # Add new status label
+        # Add the new status label
         cmd = f'gh issue edit {issue_number} --repo {repo} --add-label "status-{status}"'
-        subprocess.run(cmd, shell=True, check=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+        print(f"✅ Added status-{status} label to issue #{issue_number}")
+        
+        # Try to remove old status labels (best effort)
+        try:
+            cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            
+            # Only parse if we get valid JSON
+            if result.stdout.strip().startswith('{'):
+                labels_data = json.loads(result.stdout)
+                labels = labels_data.get('labels', [])
+                
+                for label in labels:
+                    if label['name'].startswith('status-') and label['name'] != f'status-{status}':
+                        subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label["name"]}"', shell=True)
+                        print(f"Removed old status label: {label['name']}")
+            else:
+                print(f"GitHub CLI returned non-JSON: {result.stdout[:100]}...")
+        except Exception as cleanup_error:
+            print(f"Warning: Could not clean up old labels: {cleanup_error}")
+        
         return True
-    except:
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to set status: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error in set_issue_status: {e}")
         return False
 
 def set_issue_tree_priority_with_inheritance(repo: str, issue_number: int, priority: str) -> bool:
