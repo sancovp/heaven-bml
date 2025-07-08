@@ -51,10 +51,27 @@ move_issue_above('123', '456', 'your-org/your-repo')
 - **API integration**: Real-time GitHub synchronization
 
 ### 🤖 MCP Server for Claude Code
-```bash
-# Configure Claude Desktop
-python -m mcp_server --default-repo "your-org/your-repo"
+
+Add this configuration to your Claude Desktop config file:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "heaven-bml": {
+      "command": "python",
+      "args": ["-m", "heaven_bml.mcp_server", "--default-repo", "your-org/your-repo"],
+      "env": {
+        "GITHUB_TOKEN": "your_github_token_here"
+      }
+    }
+  }
+}
 ```
+
+Then restart Claude Desktop and the BML tools will be available in Claude Code!
 
 ### 🔄 GitHub Workflow Automation
 ```bash
