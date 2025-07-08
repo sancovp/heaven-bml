@@ -241,69 +241,14 @@ class BMLServer:
         import os
         import base64
         
-        # Workflow files to install
-        workflow_files = {
-            "bml-automation.yml": """name: HEAVEN BML System Automation
-
-on:
-  issues:
-    types: [opened, edited, labeled, unlabeled]
-
-jobs:
-  bml-automation:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Auto-label new issues
-      if: github.event.action == 'opened'
-      run: |
-        # Add default status-backlog label to new issues
-        gh issue edit ${{ github.event.issue.number }} --add-label "status-backlog"
-        echo "Added status-backlog label to issue #${{ github.event.issue.number }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  attribution-check:
-    runs-on: ubuntu-latest
-    if: github.event.action == 'opened'
-    
-    steps:
-    - name: Add BML Attribution
-      run: |
-        # Add attribution comment to new issues
-        gh issue comment ${{ github.event.issue.number }} --body "**Powered by HEAVEN BML System** | [Learn more](https://github.com/sancovp/heaven-bml-system)"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-""",
-            "promote-idea-to-issue.yml": """name: Promote Ideas to Issues
-
-on:
-  push:
-    paths:
-      - 'ideas/**'
-
-jobs:
-  promote-ideas:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Create issues from idea files
-      run: |
-        for file in ideas/*.md; do
-          if [ -f "$file" ]; then
-            title=$(head -n 1 "$file" | sed 's/^# *//')
-            body=$(tail -n +2 "$file")
-            gh issue create --title "💡 $title" --body "$body" --label "status-backlog,idea-promoted"
-            echo "Created issue from $file"
-          fi
-        done
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-"""
-        }
+        # Read all workflow files from github_workflows directory
+        import pathlib
+        workflow_files = {}
+        workflows_dir = pathlib.Path(__file__).parent.parent / "github_workflows"
+        
+        for workflow_file in workflows_dir.glob("*.yml"):
+            with open(workflow_file, 'r') as f:
+                workflow_files[workflow_file.name] = f.read()
         
         try:
             # Check if repo exists first
