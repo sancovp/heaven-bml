@@ -241,12 +241,6 @@ class BMLServer:
         import os
         
         try:
-            # Import the existing install function using sys.path
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from setup_scripts.install_bml_workflows import install_bml_workflows as install_local
-            
             # Clone the target repo temporarily
             with tempfile.TemporaryDirectory() as temp_dir:
                 clone_path = os.path.join(temp_dir, "repo")
@@ -255,20 +249,18 @@ class BMLServer:
                 subprocess.run(f'gh repo clone {target_repo} "{clone_path}"', 
                              shell=True, check=True, capture_output=True)
                 
-                # Install workflows using our existing function
-                success = install_local(clone_path, target_repo)
+                # Use the console script to install workflows
+                result = subprocess.run(f'install-bml-workflows --repo "{clone_path}" --repo-name "{target_repo}"', 
+                                      shell=True, capture_output=True, text=True, check=True)
                 
-                if success:
-                    # Commit and push changes
-                    os.chdir(clone_path)
-                    subprocess.run('git add .', shell=True, check=True)
-                    subprocess.run('git commit -m "🤖 Install HEAVEN BML automation workflows"', 
-                                 shell=True, check=True)
-                    subprocess.run('git push', shell=True, check=True)
-                    
-                    return f"✅ Successfully installed BML workflows in {target_repo}"
-                else:
-                    return f"❌ Failed to install workflows in {target_repo}"
+                # Commit and push changes
+                os.chdir(clone_path)
+                subprocess.run('git add .', shell=True, check=True)
+                subprocess.run('git commit -m "🤖 Install HEAVEN BML automation workflows"', 
+                             shell=True, check=True)
+                subprocess.run('git push', shell=True, check=True)
+                
+                return f"✅ Successfully installed BML workflows in {target_repo}"
                     
         except Exception as e:
             return f"❌ Error installing workflows: {str(e)}"
