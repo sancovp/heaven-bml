@@ -301,7 +301,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_ABOVE.value,
-                description="Move issue above target issue using HEAVEN tree notation. Creates new priority like if target is priority-2.1, moved issue becomes priority-2.0.5. Tree notation allows infinite precision: 1 > 1.1 > 1.2 > 1.2.1 > 1.2.2 > 1.3. Use this to create sub-priorities and organize hierarchical task structures.",
+                description="Move issue above target issue. INTELLIGENT ALGORITHM: Preserves all relative positions and parent-child relationships while placing the issue exactly above the target. The system reorganizes priorities to maintain clean integer-based tree notation (1, 1.1, 1.2, 2, 2.1...). Numbers may change but positions and relationships are always preserved.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -323,7 +323,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_BELOW.value,
-                description="Move issue below target issue using HEAVEN tree notation. Creates lower priority like if target is priority-2.1, moved issue becomes priority-2.1.5. Perfect for creating sub-tasks under parent issues.",
+                description="Move issue below target issue. POSITION-PRESERVING: The algorithm maintains all existing relationships and tree structure while placing the issue exactly below the target. Priority numbers are intelligently reorganized to keep clean integers (no decimals). Focus on positions, not numbers - the system handles optimal numbering automatically.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -345,7 +345,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_BETWEEN.value,
-                description="Move issue between two other issues using HEAVEN tree notation. Precisely positions issue by creating new priority between existing ones. Example: between priority-1.2 and priority-1.3, creates priority-1.2.5.",
+                description="Move issue between two other issues. SMART POSITIONING: Places issue exactly between the specified targets while preserving all other relationships. The algorithm intelligently reorganizes the entire priority space to maintain clean structure. Think in terms of relative positioning - 'put this between those two' - not specific numbers.",
                 inputSchema={
                     "type": "object",
                     "properties": {

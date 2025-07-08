@@ -107,9 +107,7 @@ def set_issue_tree_priority(repo: str, issue_number: int, priority: str) -> bool
             labels_data = json.loads(result.stdout)
             labels = labels_data['labels']
         except json.JSONDecodeError as e:
-            print(f"JSON decode error in set_issue_tree_priority: {e}")
-            print(f"Command output: {result.stdout[:200]}...")
-            # Continue without removing old labels
+            # Just continue silently - GitHub CLI sometimes returns non-JSON
             labels = []
         
         for label in labels:
