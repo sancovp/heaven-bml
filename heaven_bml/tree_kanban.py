@@ -362,47 +362,66 @@ def get_all_prioritized_issues(repo: str) -> List[dict]:
         print(f"Error getting prioritized issues: {e}")
         return []
 
-def renumber_all_priorities(issues: List[dict], repo: str):
-    """Assign clean sequential priorities to list of issues, preserving tree structure."""
-    import requests
-    import os
-    import sys
-    import io
+def calculate_insertion_priority(issues: List[dict], insert_position: int) -> str:
+    """Calculate the optimal priority for inserting at a specific position"""
     
-    # Suppress stdout during bulk operations to reduce noise
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
+    if not issues:
+        return "1"
     
-    # Group by tree level 
-    root_issues = []
-    subtasks = {}  # parent_priority -> [subtasks]
-    
-    for issue in issues:
-        priority_parts = issue['priority'].split('.')
-        if len(priority_parts) == 1:
-            root_issues.append(issue)
+    if insert_position <= 0:
+        # Insert before first issue
+        first_priority = parse_tree_priority(issues[0]['priority'])
+        if first_priority[0] > 1:
+            return str(first_priority[0] - 1)
         else:
-            parent_priority = '.'.join(priority_parts[:-1])
-            if parent_priority not in subtasks:
-                subtasks[parent_priority] = []
-            subtasks[parent_priority].append(issue)
+            return "0.5"
     
-    # Renumber root issues
-    for i, issue in enumerate(root_issues):
-        new_priority = f"{i+1}"
-        set_issue_tree_priority(repo, str(issue['number']), new_priority)
-        issue['new_priority'] = new_priority
+    if insert_position >= len(issues):
+        # Insert after last issue
+        last_priority = parse_tree_priority(issues[-1]['priority'])
+        return str(last_priority[0] + 1)
+    
+    # Insert between two issues
+    before_issue = issues[insert_position - 1] if insert_position > 0 else None
+    after_issue = issues[insert_position]
+    
+    if before_issue:
+        before_priority = parse_tree_priority(before_issue['priority'])
+        after_priority = parse_tree_priority(after_issue['priority'])
         
-        # Renumber subtasks under this root
-        old_priority = issue['priority']
-        if old_priority in subtasks:
-            for j, subtask in enumerate(subtasks[old_priority]):
-                subtask_priority = f"{new_priority}.{j+1}"
-                set_issue_tree_priority(repo, str(subtask['number']), subtask_priority)
-                subtask['new_priority'] = subtask_priority
+        # Simple case: different root numbers
+        if before_priority[0] != after_priority[0]:
+            return str(before_priority[0] + 1)
+        
+        # Same root - need to find space between them
+        # For now, use simple decimal insertion
+        before_num = float('.'.join(map(str, before_priority)))
+        after_num = float('.'.join(map(str, after_priority)))
+        mid_num = (before_num + after_num) / 2
+        
+        # Convert back to tree notation
+        if mid_num == int(mid_num):
+            return str(int(mid_num))
+        else:
+            return str(mid_num)
     
-    # Restore stdout
-    sys.stdout = old_stdout
+    # Fallback
+    return str(parse_tree_priority(after_issue['priority'])[0])
+
+def insert_issue_at_position(moving_issue: dict, issues: List[dict], insert_position: int, repo: str):
+    """Insert issue at specific position with minimal GitHub operations"""
+    
+    # Calculate the priority needed for this position
+    new_priority = calculate_insertion_priority(issues, insert_position)
+    
+    # Update only the moving issue
+    success = set_issue_tree_priority(repo, str(moving_issue['number']), new_priority)
+    if success:
+        moving_issue['new_priority'] = new_priority
+        moving_issue['priority'] = new_priority
+        print(f"Set issue #{moving_issue['number']} to priority {new_priority}")
+    
+    return new_priority
 
 def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     """Move issue to position above target issue."""
@@ -431,23 +450,10 @@ def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     if target_position is None:
         raise ValueError(f"Target issue #{target_issue_id} not found")
     
-    # Insert above target
-    prioritized_only.insert(target_position, moving_issue)
+    # Use smart insertion - only modify the moving issue
+    new_priority = insert_issue_at_position(moving_issue, prioritized_only, target_position, repo)
     
-    # Renumber only the prioritized issues
-    renumber_all_priorities(prioritized_only, repo)
-    
-    # Find the actual priority that was assigned to the moved issue
-    actual_priority = None
-    for issue in prioritized_only:
-        if str(issue['number']) == str(issue_id):
-            actual_priority = issue.get('new_priority', issue['priority'])
-            break
-    
-    if not actual_priority:
-        actual_priority = f"{target_position + 1}"  # Fallback
-    
-    result = f"Moved issue #{issue_id} above #{target_issue_id} | List position: {target_position + 1} | Priority: {actual_priority}"
+    result = f"Moved issue #{issue_id} above #{target_issue_id} | List position: {target_position + 1} | Priority: {new_priority}"
     print(result)
     return result
 
@@ -478,23 +484,10 @@ def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
     if target_position is None:
         raise ValueError(f"Target issue #{target_issue_id} not found")
     
-    # Insert below target
-    prioritized_only.insert(target_position, moving_issue)
+    # Use smart insertion - only modify the moving issue
+    new_priority = insert_issue_at_position(moving_issue, prioritized_only, target_position, repo)
     
-    # Renumber only the prioritized issues
-    renumber_all_priorities(prioritized_only, repo)
-    
-    # Find the actual priority that was assigned to the moved issue
-    actual_priority = None
-    for issue in prioritized_only:
-        if str(issue['number']) == str(issue_id):
-            actual_priority = issue.get('new_priority', issue['priority'])
-            break
-    
-    if not actual_priority:
-        actual_priority = f"{target_position + 1}"  # Fallback
-    
-    result = f"Moved issue #{issue_id} below #{target_issue_id} | List position: {target_position + 1} | Priority: {actual_priority}"
+    result = f"Moved issue #{issue_id} below #{target_issue_id} | List position: {target_position + 1} | Priority: {new_priority}"
     print(result)
     return result
 
@@ -535,22 +528,11 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     
     # Insert between them (right after the above issue)
     insert_position = above_position + 1
-    prioritized_only.insert(insert_position, moving_issue)
     
-    # Renumber only the prioritized issues
-    renumber_all_priorities(prioritized_only, repo)
+    # Use smart insertion - only modify the moving issue
+    new_priority = insert_issue_at_position(moving_issue, prioritized_only, insert_position, repo)
     
-    # Find the actual priority that was assigned to the moved issue
-    actual_priority = None
-    for issue in prioritized_only:
-        if str(issue['number']) == str(issue_id):
-            actual_priority = issue.get('new_priority', issue['priority'])
-            break
-    
-    if not actual_priority:
-        actual_priority = f"{insert_position + 1}"  # Fallback
-    
-    result = f"Moved issue #{issue_id} between #{above_issue_id} and #{below_issue_id} | List position: {insert_position + 1} | Priority: {actual_priority}"
+    result = f"Moved issue #{issue_id} between #{above_issue_id} and #{below_issue_id} | List position: {insert_position + 1} | Priority: {new_priority}"
     print(result)
     return result
 
