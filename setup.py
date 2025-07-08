@@ -51,7 +51,8 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        # No external dependencies - uses GitHub CLI and standard library
+        "requests",  # Required for GitHub API calls in BML functions
+        "mcp",       # Required for MCP server functionality
     ],
     extras_require={
         "dev": [

@@ -69,12 +69,17 @@ except ImportError as e:
     def view_lane(repo: str, status: str) -> list:
         return [{"number": 1, "title": f"Sample issue in {status}"}]
 
-# Note: set_issue_status might not exist in the package, so implement it
+# Real implementation of set_issue_status using GitHub CLI
 def set_issue_status(issue_id: str, status: str, repo: str) -> str:
     """Set issue status by updating GitHub labels"""
     if USING_REAL_FUNCTIONS:
-        # In real implementation, this would use GitHub API to update labels
-        return f"Set issue {issue_id} to status {status} in {repo} (GitHub API call needed)"
+        # Use real BML function
+        from heaven_bml.tree_kanban import set_issue_status as bml_set_status
+        success = bml_set_status(repo, int(issue_id), status)
+        if success:
+            return f"✅ Set issue #{issue_id} to status '{status}' in {repo}"
+        else:
+            return f"❌ Failed to set issue #{issue_id} to status '{status}' in {repo}"
     else:
         return f"STUB: Set issue {issue_id} to status {status} in {repo}"
 
@@ -118,8 +123,40 @@ class BMLServer:
     def get_issue(self, issue_id: str, repo: str = None) -> dict:
         """Get details for a specific issue"""
         repo = repo or self.default_repo
-        # In real implementation, this would fetch from GitHub API
-        return {"repo": repo, "issue_id": issue_id, "status": "placeholder"}
+        
+        if USING_REAL_FUNCTIONS:
+            # Use GitHub CLI to get issue details
+            import subprocess
+            import json
+            
+            try:
+                cmd = f'gh issue view {issue_id} --repo {repo} --json number,title,body,labels,state'
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+                issue_data = json.loads(result.stdout)
+                
+                # Extract status from labels
+                status = 'backlog'  # default
+                priority = 'none'
+                for label in issue_data.get('labels', []):
+                    if label['name'].startswith('status-'):
+                        status = label['name'][7:]  # Remove 'status-' prefix
+                    elif label['name'].startswith('priority-'):
+                        priority = label['name'][9:]  # Remove 'priority-' prefix
+                
+                return {
+                    "repo": repo,
+                    "issue_id": issue_id,
+                    "number": issue_data['number'],
+                    "title": issue_data['title'],
+                    "body": issue_data['body'],
+                    "state": issue_data['state'],
+                    "status": status,
+                    "priority": priority
+                }
+            except subprocess.CalledProcessError:
+                return {"repo": repo, "issue_id": issue_id, "error": "Issue not found"}
+        else:
+            return {"repo": repo, "issue_id": issue_id, "status": "placeholder"}
     
     def create_issue(self, title: str, body: str = "", labels: list = None, repo: str = None) -> dict:
         """Create a new issue"""
