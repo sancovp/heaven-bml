@@ -125,8 +125,15 @@ class BMLServer:
         """Create a new issue"""
         repo = repo or self.default_repo
         labels = labels or ["status-backlog", "priority-medium"]
-        # In real implementation, this would create via GitHub API
-        return {"repo": repo, "title": title, "body": body, "labels": labels, "created": True}
+        
+        if USING_REAL_FUNCTIONS:
+            # Use real BML function to create GitHub issue
+            from heaven_bml.github_kanban import create_github_issue_with_status
+            issue_id = create_github_issue_with_status(repo, title, body, "backlog")
+            return {"repo": repo, "title": title, "body": body, "issue_id": issue_id, "created": True}
+        else:
+            # Stub implementation
+            return {"repo": repo, "title": title, "body": body, "labels": labels, "created": True}
     
     def move_issue_above(self, issue_id: str, target_issue_id: str, repo: str = None) -> str:
         """Move issue above target issue in priority"""
@@ -151,7 +158,19 @@ class BMLServer:
     def view_kanban(self, repo: str = None) -> dict:
         """Get complete kanban board view"""
         repo = repo or self.default_repo
-        return {"repo": repo, "kanban": construct_kanban_from_labels(repo)}
+        kanban = construct_kanban_from_labels(repo)
+        return {
+            "repo": repo, 
+            "kanban": {
+                "backlog": [{"number": issue.number, "title": issue.title} for issue in kanban.backlog],
+                "plan": [{"number": issue.number, "title": issue.title} for issue in kanban.plan],
+                "build": [{"number": issue.number, "title": issue.title} for issue in kanban.build],
+                "measure": [{"number": issue.number, "title": issue.title} for issue in kanban.measure],
+                "learn": [{"number": issue.number, "title": issue.title} for issue in kanban.learn],
+                "blocked": [{"number": issue.number, "title": issue.title} for issue in kanban.blocked],
+                "archived": [{"number": issue.number, "title": issue.title} for issue in kanban.archived]
+            }
+        }
     
     def get_kanban_lane(self, status: str, repo: str = None) -> dict:
         """Get issues in specific kanban lane"""
