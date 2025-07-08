@@ -6,6 +6,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 def get_version():
+    import os
+    # In GitHub Actions, use GITHUB_REF_NAME environment variable
+    if 'GITHUB_REF_NAME' in os.environ:
+        tag = os.environ['GITHUB_REF_NAME']
+        # Convert v1.6.0 or public-1.6.0 to 1.6.0
+        version = re.sub(r'^(v|public-)', '', tag)
+        return version
+    
     try:
         # Get version from git tag
         result = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
@@ -16,7 +24,7 @@ def get_version():
         return version
     except:
         # Fallback version if git not available
-        return "1.6.0"
+        return "1.6.2"
 
 setup(
     name="heaven-bml",
