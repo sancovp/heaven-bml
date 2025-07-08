@@ -430,10 +430,19 @@ def move_issue_above(issue_id: str, target_issue_id: str, repo: str) -> str:
     # Renumber only the prioritized issues
     renumber_all_priorities(prioritized_only, repo)
     
-    # Return new priority
-    new_priority = f"{target_position + 1}"
-    print(f"Moved issue #{issue_id} above #{target_issue_id} → priority {new_priority}")
-    return new_priority
+    # Find the actual priority that was assigned to the moved issue
+    actual_priority = None
+    for issue in prioritized_only:
+        if str(issue['number']) == str(issue_id):
+            actual_priority = issue.get('new_priority', issue['priority'])
+            break
+    
+    if not actual_priority:
+        actual_priority = f"{target_position + 1}"  # Fallback
+    
+    result = f"Moved issue #{issue_id} above #{target_issue_id} | List position: {target_position + 1} | Priority: {actual_priority}"
+    print(result)
+    return result
 
 def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
     """Move issue to position below target issue."""
@@ -468,10 +477,19 @@ def move_issue_below(issue_id: str, target_issue_id: str, repo: str) -> str:
     # Renumber only the prioritized issues
     renumber_all_priorities(prioritized_only, repo)
     
-    # Return new priority
-    new_priority = f"{target_position + 1}"
-    print(f"Moved issue #{issue_id} below #{target_issue_id} → priority {new_priority}")
-    return new_priority
+    # Find the actual priority that was assigned to the moved issue
+    actual_priority = None
+    for issue in prioritized_only:
+        if str(issue['number']) == str(issue_id):
+            actual_priority = issue.get('new_priority', issue['priority'])
+            break
+    
+    if not actual_priority:
+        actual_priority = f"{target_position + 1}"  # Fallback
+    
+    result = f"Moved issue #{issue_id} below #{target_issue_id} | List position: {target_position + 1} | Priority: {actual_priority}"
+    print(result)
+    return result
 
 def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, repo: str) -> str:
     """Move issue between two other issues."""
@@ -515,10 +533,19 @@ def move_issue_between(issue_id: str, above_issue_id: str, below_issue_id: str, 
     # Renumber only the prioritized issues
     renumber_all_priorities(prioritized_only, repo)
     
-    # Return new priority (will be determined by renumbering)
-    new_priority = f"{insert_position + 1}"
-    print(f"Moved issue #{issue_id} between #{above_issue_id} and #{below_issue_id} → priority {new_priority}")
-    return new_priority
+    # Find the actual priority that was assigned to the moved issue
+    actual_priority = None
+    for issue in prioritized_only:
+        if str(issue['number']) == str(issue_id):
+            actual_priority = issue.get('new_priority', issue['priority'])
+            break
+    
+    if not actual_priority:
+        actual_priority = f"{insert_position + 1}"  # Fallback
+    
+    result = f"Moved issue #{issue_id} between #{above_issue_id} and #{below_issue_id} | List position: {insert_position + 1} | Priority: {actual_priority}"
+    print(result)
+    return result
 
 
 def print_tree_kanban_board(repo: str) -> None:
