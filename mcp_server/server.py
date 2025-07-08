@@ -251,7 +251,11 @@ class BMLServer:
                 
                 # Use the console script to install workflows
                 result = subprocess.run(f'install-bml-workflows --repo "{clone_path}" --repo-name "{target_repo}"', 
-                                      shell=True, capture_output=True, text=True, check=True)
+                                      shell=True, capture_output=True, text=True)
+                
+                if result.returncode != 0:
+                    error_info = f"stdout: {result.stdout}, stderr: {result.stderr}"
+                    return f"❌ Console script failed: {error_info}"
                 
                 # Commit and push changes
                 os.chdir(clone_path)
