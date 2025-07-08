@@ -1,11 +1,26 @@
 from setuptools import setup, find_packages
+import subprocess
+import re
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+def get_version():
+    try:
+        # Get version from git tag
+        result = subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], 
+                              capture_output=True, text=True, check=True)
+        tag = result.stdout.strip()
+        # Convert v1.6.0 or public-1.6.0 to 1.6.0
+        version = re.sub(r'^(v|public-)', '', tag)
+        return version
+    except:
+        # Fallback version if git not available
+        return "1.6.0"
+
 setup(
     name="heaven-bml",
-    version="1.4.0",
+    version=get_version(),
     author="HEAVEN Development Team",
     author_email="team@heaven-dev.com",
     description="Build-Measure-Learn GitHub project management for AI agents",
