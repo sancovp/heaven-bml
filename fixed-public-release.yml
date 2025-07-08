@@ -1,0 +1,33 @@
+name: Public Release
+
+on:
+  push:
+    tags:
+      - "public-*"
+      - "*-public"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - uses: actions/checkout@v4
+        
+    - name: Filter and push to public repo
+      run: |
+        # Remove ideas directory
+        rm -rf ideas/
+        
+        # Configure git
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        
+        # Add public repo as remote and push
+        git remote add public https://${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/sancovp/heaven-bml.git
+        git add .
+        git commit -m "Public release ${{ github.ref_name }}" || true
+        git push public HEAD:main --force
+      env:
+        GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}

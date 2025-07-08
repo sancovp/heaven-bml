@@ -1,0 +1,24 @@
+name: Simple Public Release
+
+on:
+  push:
+    tags:
+      - "simple-*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - uses: actions/checkout@v4
+        
+    - name: Simple test
+      run: |
+        echo "Tag: ${{ github.ref_name }}"
+        echo "Repo: ${{ github.repository }}"
+        echo "PUBLIC_REPO_URL: ${{ secrets.PUBLIC_REPO_URL }}"
+        ls -la
+      env:
+        PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
