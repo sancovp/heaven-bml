@@ -173,10 +173,12 @@ def create_status_label_if_needed(repo: str, status: str) -> bool:
     # Check if label exists
     try:
         cmd = f'gh api repos/{repo}/labels/{label_name}'
-        subprocess.run(cmd, shell=True, check=True, capture_output=True)
+        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        print(f"Label {label_name} already exists")
         return True  # Label exists
-    except subprocess.CalledProcessError:
-        pass  # Label doesn't exist, create it
+    except subprocess.CalledProcessError as e:
+        print(f"Label {label_name} does not exist (code {e.returncode}), creating it...")
+        # Label doesn't exist, create it
     
     # Create label with status-appropriate color
     status_colors = {
@@ -192,10 +194,15 @@ def create_status_label_if_needed(repo: str, status: str) -> bool:
     
     try:
         cmd = f'gh api repos/{repo}/labels -f name="{label_name}" -f color="{color}" -f description="BML status: {status}"'
-        subprocess.run(cmd, shell=True, check=True)
+        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        print(f"✅ Created label {label_name}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"Failed to create label {label_name}: {e}")
+        print(f"Failed to create label {label_name}")
+        print(f"Command: {cmd}")
+        print(f"Return code: {e.returncode}")
+        print(f"Stdout: {e.stdout}")
+        print(f"Stderr: {e.stderr}")
         return False
 
 def set_issue_status(repo: str, issue_number: int, status: str) -> bool:
@@ -205,7 +212,8 @@ def set_issue_status(repo: str, issue_number: int, status: str) -> bool:
     
     # Create status label if needed
     if not create_status_label_if_needed(repo, status):
-        print(f"Warning: Could not create status label for {status}")
+        print(f"Error: Could not create status label for {status}")
+        return False
     
     try:
         # Add the new status label
