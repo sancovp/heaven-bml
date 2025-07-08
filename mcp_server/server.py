@@ -24,6 +24,8 @@ class BMLTools(str, Enum):
     SET_ISSUE_PRIORITY = "set_issue_priority"
     VIEW_KANBAN = "view_kanban"
     GET_KANBAN_LANE = "get_kanban_lane"
+    INSTALL_BML_WORKFLOWS = "install_bml_workflows"
+    CREATE_REPO_WITH_TYPE = "create_repo_with_type"
 
 
 # Import real BML functions from heaven-bml-system package
@@ -229,6 +231,62 @@ class BMLServer:
         repo = repo or self.default_repo
         issues = view_lane(repo, status)
         return {"repo": repo, "status": status, "issues": issues}
+    
+    def install_bml_workflows(self, target_repo: str) -> str:
+        """Install BML automation workflows in target repository using GitHub CLI"""
+        import subprocess
+        import tempfile
+        import os
+        
+        try:
+            # Import the existing install function
+            from setup_scripts.install_bml_workflows import install_bml_workflows as install_local
+            
+            # Clone the target repo temporarily
+            with tempfile.TemporaryDirectory() as temp_dir:
+                clone_path = os.path.join(temp_dir, "repo")
+                
+                # Clone the repository
+                subprocess.run(f'gh repo clone {target_repo} "{clone_path}"', 
+                             shell=True, check=True, capture_output=True)
+                
+                # Install workflows using our existing function
+                success = install_local(clone_path, target_repo)
+                
+                if success:
+                    # Commit and push changes
+                    os.chdir(clone_path)
+                    subprocess.run('git add .', shell=True, check=True)
+                    subprocess.run('git commit -m "🤖 Install HEAVEN BML automation workflows"', 
+                                 shell=True, check=True)
+                    subprocess.run('git push', shell=True, check=True)
+                    
+                    return f"✅ Successfully installed BML workflows in {target_repo}"
+                else:
+                    return f"❌ Failed to install workflows in {target_repo}"
+                    
+        except Exception as e:
+            return f"❌ Error installing workflows: {str(e)}"
+    
+    def create_repo_with_type(self, repo_name: str, description: str = "", private: bool = True) -> str:
+        """Create a new GitHub repository and install BML workflows"""
+        import subprocess
+        
+        try:
+            # Create repository
+            visibility = "--private" if private else "--public"
+            cmd = f'gh repo create {repo_name} {visibility} --description "{description}" --clone'
+            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+            
+            # Install BML workflows in the new repo
+            install_result = self.install_bml_workflows(repo_name)
+            
+            return f"✅ Created repository {repo_name} | {install_result}"
+            
+        except subprocess.CalledProcessError as e:
+            return f"❌ Failed to create repository {repo_name}: {e.stderr}"
+        except Exception as e:
+            return f"❌ Error creating repository: {str(e)}"
 
 
 async def serve(default_repo: str = "sancovp/heaven-base") -> None:
@@ -447,6 +505,42 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                     "required": ["status"],
                 },
             ),
+            Tool(
+                name=BMLTools.INSTALL_BML_WORKFLOWS.value,
+                description="Install HEAVEN BML automation workflows in any GitHub repository. Adds complete project management automation including auto-labeling, kanban workflows, and idea promotion. Makes any repo BML-ready for AI agent management.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "target_repo": {
+                            "type": "string",
+                            "description": "Target repository in format 'owner/repo'",
+                        }
+                    },
+                    "required": ["target_repo"],
+                },
+            ),
+            Tool(
+                name=BMLTools.CREATE_REPO_WITH_TYPE.value,
+                description="Create a new GitHub repository with BML workflows pre-installed. Sets up complete project management automation from day one. Perfect for starting new AI-managed projects with full BML capabilities.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "repo_name": {
+                            "type": "string",
+                            "description": "Repository name in format 'owner/repo'",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Repository description",
+                        },
+                        "private": {
+                            "type": "boolean",
+                            "description": "Whether to create private repository (default: true)",
+                        }
+                    },
+                    "required": ["repo_name"],
+                },
+            ),
         ]
     
     @server.call_tool()
@@ -522,6 +616,22 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                     if not status:
                         raise ValueError("Missing required argument: status")
                     result = bml_server.get_kanban_lane(status, arguments.get("repo"))
+                
+                case BMLTools.INSTALL_BML_WORKFLOWS.value:
+                    target_repo = arguments.get("target_repo")
+                    if not target_repo:
+                        raise ValueError("Missing required argument: target_repo")
+                    result = bml_server.install_bml_workflows(target_repo)
+                
+                case BMLTools.CREATE_REPO_WITH_TYPE.value:
+                    repo_name = arguments.get("repo_name")
+                    if not repo_name:
+                        raise ValueError("Missing required argument: repo_name")
+                    result = bml_server.create_repo_with_type(
+                        repo_name,
+                        arguments.get("description", ""),
+                        arguments.get("private", True)
+                    )
                 
                 case _:
                     raise ValueError(f"Unknown tool: {name}")
