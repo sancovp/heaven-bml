@@ -80,7 +80,31 @@ def set_issue_status(issue_id: str, status: str, repo: str) -> str:
 
 
 class BMLServer:
-    """BML server implementation with GitHub kanban management"""
+    """
+    HEAVEN Build-Measure-Learn Server with Tree Notation Priorities
+    
+    This server provides AI agents with sophisticated GitHub project management using:
+    
+    🌳 TREE NOTATION PRIORITIES:
+    - Hierarchical priorities: 1 > 1.1 > 1.2 > 1.2.1 > 1.2.2 > 1.3 > 2
+    - Infinite nesting allows precise task organization
+    - Natural sorting: priority-1.2.3 comes before priority-1.2.4
+    - Create sub-tasks by moving below parent (1.2 → 1.2.1, 1.2.2...)
+    
+    📋 BUILD-MEASURE-LEARN WORKFLOW:
+    - backlog: Ideas and requests waiting for prioritization
+    - plan: Prioritized and designed tasks ready for development  
+    - build: Currently in development
+    - measure: Testing, validation, getting feedback
+    - learn: Analysis, insights, retrospective
+    - blocked: Stuck at any stage (with reason)
+    - archived: Completed work
+    
+    🔧 OPERATIONS:
+    Use move_issue_above/below/between to create tree hierarchies.
+    Use set_issue_status to progress through BML workflow.
+    Use view_kanban to see complete project state with priorities.
+    """
     
     def __init__(self, default_repo: str = "sancovp/heaven-base"):
         self.default_repo = default_repo
@@ -147,7 +171,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
         return [
             Tool(
                 name=BMLTools.LIST_ISSUES.value,
-                description="List all prioritized issues in a repository",
+                description="List all issues with HEAVEN tree notation priorities. Tree notation uses hierarchical priorities like 1.2.3.4.5 where 1.2.3 comes before 1.2.4. This allows infinite nesting and precise ordering of priorities.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -206,7 +230,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_ABOVE.value,
-                description="Move issue above target issue in priority order",
+                description="Move issue above target issue using HEAVEN tree notation. Creates new priority like if target is priority-2.1, moved issue becomes priority-2.0.5. Tree notation allows infinite precision: 1 > 1.1 > 1.2 > 1.2.1 > 1.2.2 > 1.3. Use this to create sub-priorities and organize hierarchical task structures.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -228,7 +252,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_BELOW.value,
-                description="Move issue below target issue in priority order",
+                description="Move issue below target issue using HEAVEN tree notation. Creates lower priority like if target is priority-2.1, moved issue becomes priority-2.1.5. Perfect for creating sub-tasks under parent issues.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -250,7 +274,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.MOVE_ISSUE_BETWEEN.value,
-                description="Move issue between two other issues in priority order",
+                description="Move issue between two other issues using HEAVEN tree notation. Precisely positions issue by creating new priority between existing ones. Example: between priority-1.2 and priority-1.3, creates priority-1.2.5.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -276,7 +300,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.SET_ISSUE_STATUS.value,
-                description="Set issue status (backlog/plan/build/measure/learn/blocked/archived)",
+                description="Set issue status in Build-Measure-Learn workflow: backlog (ideas/requests) → plan (prioritized/designed) → build (in development) → measure (testing/validation) → learn (insights/analysis) → archived (completed). Also supports blocked status for any stage.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -299,7 +323,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.VIEW_KANBAN.value,
-                description="Get complete kanban board view with all lanes",
+                description="Get complete Build-Measure-Learn kanban board with tree notation priorities. Shows all lanes: backlog → plan → build → measure → learn → archived, plus blocked items. Issues sorted by HEAVEN tree notation (1 > 1.1 > 1.2 > 1.2.1).",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -313,7 +337,7 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
             ),
             Tool(
                 name=BMLTools.GET_KANBAN_LANE.value,
-                description="Get issues in a specific kanban lane/status",
+                description="Get issues in a specific Build-Measure-Learn lane with tree notation priorities. Each lane represents a workflow stage: backlog (gathering), plan (prioritizing), build (developing), measure (testing), learn (analyzing), blocked (stuck), archived (done).",
                 inputSchema={
                     "type": "object",
                     "properties": {
