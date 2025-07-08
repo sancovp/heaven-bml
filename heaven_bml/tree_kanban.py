@@ -101,12 +101,22 @@ def set_issue_tree_priority(repo: str, issue_number: int, priority: str) -> bool
     try:
         cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-        labels = json.loads(result.stdout)['labels']
+        
+        # Debug JSON parsing
+        try:
+            labels_data = json.loads(result.stdout)
+            labels = labels_data['labels']
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error in set_issue_tree_priority: {e}")
+            print(f"Command output: {result.stdout[:200]}...")
+            # Continue without removing old labels
+            labels = []
         
         for label in labels:
             if label['name'].startswith('priority-'):
                 subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label["name"]}"', shell=True)
-    except:
+    except Exception as e:
+        print(f"Error removing old priority labels: {e}")
         pass
     
     # Add new priority label
@@ -163,7 +173,16 @@ def set_issue_status(repo: str, issue_number: int, status: str) -> bool:
         # Remove existing status labels
         cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-        labels = json.loads(result.stdout)['labels']
+        
+        # Debug JSON parsing  
+        try:
+            labels_data = json.loads(result.stdout)
+            labels = labels_data['labels']
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error in set_issue_status: {e}")
+            print(f"Command output: {result.stdout[:200]}...")
+            # Continue without removing old labels
+            labels = []
         
         for label in labels:
             if label['name'].startswith('status-'):
