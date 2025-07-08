@@ -71,19 +71,12 @@ except ImportError as e:
     def view_lane(repo: str, status: str) -> list:
         return [{"number": 1, "title": f"Sample issue in {status}"}]
 
-# Real implementation of set_issue_status using GitHub CLI
-def set_issue_status(issue_id: str, status: str, repo: str) -> str:
-    """Set issue status by updating GitHub labels"""
-    if USING_REAL_FUNCTIONS:
-        # Use real BML function
-        from heaven_bml.tree_kanban import set_issue_status as bml_set_status
-        success = bml_set_status(repo, int(issue_id), status)
-        if success:
-            return f"✅ Set issue #{issue_id} to status '{status}' in {repo}"
-        else:
-            return f"❌ Failed to set issue #{issue_id} to status '{status}' in {repo}"
-    else:
-        return f"STUB: Set issue {issue_id} to status {status} in {repo}"
+# Import the real BML function directly
+try:
+    from heaven_bml.tree_kanban import set_issue_status as bml_set_issue_status
+except ImportError:
+    def bml_set_issue_status(repo: str, issue_number: int, status: str) -> bool:
+        return False
 
 
 class BMLServer:
@@ -199,7 +192,8 @@ class BMLServer:
     def set_issue_status(self, issue_id: str, status: str, repo: str = None) -> str:
         """Set issue status (backlog/plan/build/measure/learn/blocked/archived)"""
         repo = repo or self.default_repo
-        return set_issue_status(issue_id, status, repo)
+        success = bml_set_issue_status(repo, int(issue_id), status)
+        return f"✅ Set issue #{issue_id} to status '{status}'" if success else f"❌ Failed to set issue #{issue_id} to status '{status}'"
     
     def set_issue_priority(self, issue_id: str, priority: str, repo: str = None) -> str:
         """Set tree notation priority (e.g., '1', '1.1', '1.2.3') for hierarchical task organization"""
