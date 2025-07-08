@@ -30,5 +30,10 @@ jobs:
         git add .
         git commit -m "Public release ${{ github.ref_name }}" || echo "No changes to commit"
         git push origin main
+        
+        # Create and push tag to trigger PyPI workflow
+        VERSION=$(echo "${{ github.ref_name }}" | sed 's/public-/v/')
+        git tag $VERSION
+        git push origin $VERSION
       env:
         GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
