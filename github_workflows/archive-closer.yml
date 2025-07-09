@@ -1,0 +1,53 @@
+name: Close Original on Archive
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  close-original:
+    if: github.event.label.name == 'status-archived'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Extract Source Information
+      id: source
+      run: |
+        # Extract source repo and issue number from title
+        TITLE="${{ github.event.issue.title }}"
+        
+        # Pattern: [owner/repo#123]
+        if [[ $TITLE =~ \[([^#]+)#([0-9]+)\] ]]; then
+          SOURCE_REPO="${BASH_REMATCH[1]}"
+          SOURCE_NUMBER="${BASH_REMATCH[2]}"
+          
+          echo "source_repo=$SOURCE_REPO" >> $GITHUB_OUTPUT
+          echo "source_number=$SOURCE_NUMBER" >> $GITHUB_OUTPUT
+          echo "Found source: $SOURCE_REPO#$SOURCE_NUMBER"
+        else
+          echo "No source information found in title"
+          exit 0
+        fi
+    
+    - name: Close Original Issue
+      if: steps.source.outputs.source_repo != ''
+      env:
+        META_REPO_TOKEN: ${{ secrets.META_REPO_TOKEN }}
+      run: |
+        # Close the original issue
+        curl -X PATCH \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token $META_REPO_TOKEN" \
+          https://api.github.com/repos/${{ steps.source.outputs.source_repo }}/issues/${{ steps.source.outputs.source_number }} \
+          -d '{"state": "closed"}'
+        
+        # Add a comment explaining the closure
+        curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token $META_REPO_TOKEN" \
+          https://api.github.com/repos/${{ steps.source.outputs.source_repo }}/issues/${{ steps.source.outputs.source_number }}/comments \
+          -d @- << EOF
+        {
+          "body": "This issue has been completed and archived in the meta repository.\n\nArchived by: ${{ github.repository }}#${{ github.event.issue.number }}"
+        }
+        EOF

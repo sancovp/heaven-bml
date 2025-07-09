@@ -1,135 +1,67 @@
-# HEAVEN BML System
+# HEAVEN Ecosystem
 
-Build-Measure-Learn GitHub project management for AI agents.
+AI Development Operating System - Complete framework for AI agents and automation
 
-## Installation
+## Quick Links
 
-```bash
-pip install heaven-bml
-```
+- [Documentation](https://docs.heaven-ai.com)
+- [Discord](https://discord.gg/heaven)
+- [Website](https://heaven-ai.com)
 
-## Quick Start
+## Core Framework
 
-```python
-# Import BML functions
-from heaven_bml import (
-    construct_kanban_from_labels,
-    get_all_prioritized_issues,
-    move_issue_above,
-    move_issue_below,
-    create_github_issue_with_status
-)
+Essential components that power the HEAVEN system
 
-# View your kanban board
-kanban = construct_kanban_from_labels('your-org/your-repo')
-print(f"Backlog: {len(kanban.backlog)} items")
-print(f"Plan: {len(kanban.plan)} items")
-print(f"Build: {len(kanban.build)} items")
+### [heaven-base](https://github.com/sancovp/heaven-base)
+HEAVEN Base - Hierarchical, Embodied, Autonomously Validating Evolution Network - Core Framework
 
-# Create a new issue with BML status
-create_github_issue_with_status(
-    'your-org/your-repo',
-    'Implement feature X',
-    'Details about the feature',
-    'plan'
-)
+![License](https://img.shields.io/badge/license-MIT License-blue.svg) ![Stars](https://img.shields.io/github/stars/sancovp/heaven-base.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
 
-# Manage priorities with tree notation
-move_issue_above('123', '456', 'your-org/your-repo')
-```
+⭐ 1 stars
 
-## Features
+### [heaven-bml-system](https://github.com/sancovp/heaven-bml-system)
+Universal
 
-### 🌳 Tree Notation Priorities
-- **Infinite hierarchy**: priority-1.2.3.4.5...
-- **Automatic sorting**: Natural tree order in kanban
-- **Dynamic reordering**: Move issues above/below/between
+![License](https://img.shields.io/badge/license-Other-blue.svg) ![Stars](https://img.shields.io/github/stars/sancovp/heaven-bml-system.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-08-lightgrey.svg)
 
-### 📋 GitHub Kanban States
-- **Backlog** → **Plan** → **Build** → **Measure** → **Learn** → **Archived**
-- **Label-based**: Uses GitHub labels for state management
-- **API integration**: Real-time GitHub synchronization
+⭐ 0 stars
 
-### 🤖 MCP Server for Claude Code
+## Specialized Libraries
 
-**Prerequisites:** Install GitHub CLI and authenticate before configuring Claude Desktop.
+Focused tools for specific AI development needs
 
-Add this configuration to your Claude Desktop config file:
+### [heaven-prompt-injection](https://github.com/sancovp/heaven-prompt-injection)
+Repository information unavailable
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+![Stars](https://img.shields.io/github/stars/sancovp/heaven-prompt-injection.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
 
-```json
-{
-  "mcpServers": {
-    "heaven-bml": {
-      "command": "/opt/homebrew/bin/python3.11",
-      "args": ["-m", "mcp_server", "--default-repo", "your-org/your-repo"],
-      "env": {
-        "GITHUB_TOKEN": "your_github_token_here"
-      }
-    }
-  }
-}
-```
+⭐ 0 stars
 
-**Important Notes:**
-- Use full Python path (adjust for your system)
-- Requires Python 3.10+ for MCP server functionality
-- GitHub CLI must be installed and authenticated
-- GITHUB_TOKEN should have repo permissions
+### [heaven-research](https://github.com/sancovp/heaven-research)
+Repository information unavailable
 
-Then restart Claude Desktop and the BML tools will be available in Claude Code!
+![Stars](https://img.shields.io/github/stars/sancovp/heaven-research.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
 
-### 🔄 GitHub Workflow Automation
-```bash
-# Install BML workflows in your repository
-python -m heaven_bml.setup_scripts.install_bml_workflows --repo your-org/your-repo
-```
+⭐ 0 stars
 
-## Requirements
+### [heaven-codebase-analyzer](https://github.com/sancovp/heaven-codebase-analyzer)
+Repository information unavailable
 
-- Python 3.10+ (required for MCP server)
-- GitHub CLI (`gh` command) installed and authenticated
-- GitHub Personal Access Token with repo permissions
-- Set `GITHUB_TOKEN` environment variable
+![Stars](https://img.shields.io/github/stars/sancovp/heaven-codebase-analyzer.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
 
-### Setup Instructions
+⭐ 0 stars
 
-1. **Install GitHub CLI:**
-   ```bash
-   # macOS
-   brew install gh
-   
-   # Windows
-   winget install --id GitHub.cli
-   
-   # Linux
-   curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-   sudo apt update
-   sudo apt install gh
-   ```
+## Community Tools
 
-2. **Authenticate GitHub CLI:**
-   ```bash
-   gh auth login
-   # Follow prompts to authenticate with your GitHub account
-   ```
+Open source tools and workflows for the community
 
-3. **Verify setup:**
-   ```bash
-   gh auth status
-   python -c "from heaven_bml import construct_kanban_from_labels; print('✅ BML functions ready')"
-   ```
+### [heaven-workflows](https://github.com/sancovp/heaven-workflows)
+Repository information unavailable
 
-## License
+![Stars](https://img.shields.io/github/stars/sancovp/heaven-workflows.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
 
-HEAVEN BML System License
-- ✅ Personal and commercial use allowed
-- ✅ Modification and distribution allowed
-- **Required attribution**: "Powered by HEAVEN BML System"
+⭐ 0 stars
 
 ---
 
-**Powered by HEAVEN BML System**
+*Generated automatically on 2025-07-09 08:10:19 UTC*

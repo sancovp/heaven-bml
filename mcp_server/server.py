@@ -420,7 +420,7 @@ Build-Measure-Learn project management using GitHub's native features:
             content = json.dumps(config, indent=2)
             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             
-            cmd = f'gh api repos/{meta_repo}/contents/ecosystem.json -f message="Add {target_repo} to {section} section" -f content="{encoded_content}" -f sha="{sha}"'
+            cmd = f'gh api repos/{meta_repo}/contents/ecosystem.json -X PUT -f message="Add {target_repo} to {section} section" -f content="{encoded_content}" -f sha="{sha}"'
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
             return {
@@ -516,7 +516,7 @@ Build-Measure-Learn project management using GitHub's native features:
             # Wait a moment for GitHub to fully initialize the repo
             time.sleep(2)
             
-            cmd = f'gh api repos/{repo_name}/contents/ecosystem.json -f message="Initialize ecosystem configuration" -f content="{encoded_content}"'
+            cmd = f'gh api repos/{repo_name}/contents/ecosystem.json -X PUT -f message="Initialize ecosystem configuration" -f content="{encoded_content}"'
             
             # Try with retry in case of timing issues
             for attempt in range(3):
