@@ -508,12 +508,27 @@ Build-Measure-Learn project management using GitHub's native features:
                     }
                 }
             
-            # Add ecosystem.json to repo
+            # Add ecosystem.json to repo (with retry for timing issues)
+            import time
             content = json.dumps(initial_config, indent=2)
             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             
+            # Wait a moment for GitHub to fully initialize the repo
+            time.sleep(2)
+            
             cmd = f'gh api repos/{repo_name}/contents/ecosystem.json -f message="Initialize ecosystem configuration" -f content="{encoded_content}"'
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            
+            # Try with retry in case of timing issues
+            for attempt in range(3):
+                try:
+                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+                    break
+                except subprocess.CalledProcessError as e:
+                    if attempt < 2:  # Not the last attempt
+                        print(f"Attempt {attempt + 1} failed, retrying in 2 seconds...")
+                        time.sleep(2)
+                    else:
+                        raise e
             
             return {
                 'success': True,
