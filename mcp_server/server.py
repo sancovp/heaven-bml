@@ -339,14 +339,48 @@ Build-Measure-Learn project management using GitHub's native features:
             cmd = f'gh api repos/{repo}/contents/ecosystem.json'
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
-            file_data = json.loads(result.stdout)
+            # Handle JSON parsing with error handling
+            try:
+                file_data = json.loads(result.stdout)
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error in get_ecosystem_config: {e}")
+                print(f"Command output: {result.stdout[:500]}...")
+                return {
+                    'repo': repo,
+                    'config': None,
+                    'sha': None,
+                    'success': False,
+                    'error': 'JSON parse error in API response'
+                }
+            
             content = base64.b64decode(file_data['content']).decode('utf-8')
+            
+            # Handle ecosystem.json parsing
+            try:
+                config = json.loads(content)
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error in ecosystem.json: {e}")
+                return {
+                    'repo': repo,
+                    'config': None,
+                    'sha': None,
+                    'success': False,
+                    'error': 'Invalid ecosystem.json format'
+                }
             
             return {
                 'repo': repo,
-                'config': json.loads(content),
+                'config': config,
                 'sha': file_data['sha'],
                 'success': True
+            }
+        except subprocess.CalledProcessError as e:
+            return {
+                'repo': repo,
+                'config': None,
+                'sha': None,
+                'success': False,
+                'error': f'Repository access error: {e.stderr if e.stderr else "Unknown error"}'
             }
         except Exception as e:
             return {
@@ -387,7 +421,7 @@ Build-Measure-Learn project management using GitHub's native features:
             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             
             cmd = f'gh api repos/{meta_repo}/contents/ecosystem.json -f message="Add {target_repo} to {section} section" -f content="{encoded_content}" -f sha="{sha}"'
-            subprocess.run(cmd, shell=True, check=True)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
             return {
                 'success': True,
@@ -395,6 +429,11 @@ Build-Measure-Learn project management using GitHub's native features:
                 'target_repo': target_repo,
                 'section': section,
                 'message': f'Successfully added {target_repo} to {section} section in {meta_repo}'
+            }
+        except subprocess.CalledProcessError as e:
+            return {
+                'success': False,
+                'error': f'GitHub API error: {e.stderr if e.stderr else "Unknown error"}'
             }
         except Exception as e:
             return {
@@ -415,7 +454,7 @@ Build-Measure-Learn project management using GitHub's native features:
             description = f'HEAVEN {ecosystem_type.replace("_", " ").title()} Repository'
             
             cmd = f'gh repo create {repo_name} {private_flag} --description "{description}"'
-            subprocess.run(cmd, shell=True, check=True)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
             # Create initial ecosystem.json
             if ecosystem_type == 'personal_meta':
@@ -468,16 +507,21 @@ Build-Measure-Learn project management using GitHub's native features:
             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
             
             cmd = f'gh api repos/{repo_name}/contents/ecosystem.json -f message="Initialize ecosystem configuration" -f content="{encoded_content}"'
-            subprocess.run(cmd, shell=True, check=True)
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
             # Install BML workflows (which now includes ecosystem README workflow)
-            self.install_bml_workflows(repo_name)
+            install_result = self.install_bml_workflows(repo_name)
             
             return {
                 'success': True,
                 'repo_name': repo_name,
                 'ecosystem_type': ecosystem_type,
-                'message': f'Ecosystem repository {repo_name} created successfully with {ecosystem_type} configuration'
+                'message': f'Ecosystem repository {repo_name} created successfully with {ecosystem_type} configuration | {install_result}'
+            }
+        except subprocess.CalledProcessError as e:
+            return {
+                'success': False,
+                'error': f'GitHub error: {e.stderr if e.stderr else "Unknown error"}'
             }
         except Exception as e:
             return {
