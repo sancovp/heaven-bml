@@ -1,0 +1,50 @@
+{
+  "name": "Personal Development Hub",
+  "description": "Central coordination for all development projects",
+  "type": "personal_meta",
+  "sections": {
+    "Active Projects": {
+      "description": "Currently active development work",
+      "repos": [
+        "sancovp/heaven-base",
+        "sancovp/heaven-bml-system",
+        "sancovp/private-client-project"
+      ],
+      "auto_discover": true,
+      "show_stats": true,
+      "show_issues": true
+    },
+    "Experiments": {
+      "description": "Research and experimental projects",
+      "repos": [
+        "sancovp/ai-experiment-1",
+        "sancovp/prototype-testing"
+      ],
+      "auto_discover": false,
+      "show_stats": false,
+      "show_issues": true
+    },
+    "Maintained Libraries": {
+      "description": "Published libraries requiring maintenance",
+      "repos": [
+        "sancovp/heaven-prompt-injection"
+      ],
+      "auto_discover": true,
+      "show_stats": true,
+      "show_issues": false
+    }
+  },
+  "template": "personal",
+  "auto_update": true,
+  "badges": {
+    "license": false,
+    "version": true,
+    "stars": false,
+    "last_updated": true,
+    "issue_count": true
+  },
+  "links": {
+    "Calendar": "https://calendar.google.com/personal",
+    "Notes": "https://notion.so/workspace"
+  }
+}

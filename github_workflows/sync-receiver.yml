@@ -1,0 +1,94 @@
+name: Sync Issue Receiver
+
+on:
+  repository_dispatch:
+    types: [sync_issue]
+
+jobs:
+  process-sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup GitHub CLI
+      run: |
+        echo "${{ secrets.META_REPO_TOKEN }}" > gh_token.txt
+        gh auth login --with-token < gh_token.txt
+        rm gh_token.txt
+    
+    - name: Find or Create Wrapper Issue
+      id: wrapper
+      env:
+        GITHUB_TOKEN: ${{ secrets.META_REPO_TOKEN }}
+      run: |
+        SOURCE_REPO="${{ github.event.client_payload.source_repo }}"
+        SOURCE_NUMBER="${{ github.event.client_payload.issue_number }}"
+        
+        # Search for existing wrapper issue
+        WRAPPER_ISSUE=$(gh issue list --search "[${SOURCE_REPO}#${SOURCE_NUMBER}]" --json number --jq '.[0].number' || echo "")
+        
+        if [ -z "$WRAPPER_ISSUE" ]; then
+          # Create new wrapper issue
+          TITLE="[${SOURCE_REPO}#${SOURCE_NUMBER}] ${{ github.event.client_payload.issue_title }}"
+          
+          # Create issue with metadata in body
+          BODY="## Source Issue
+        Repository: ${SOURCE_REPO}
+        Issue: #${SOURCE_NUMBER}
+        Link: https://github.com/${SOURCE_REPO}/issues/${SOURCE_NUMBER}
+        
+        ---
+        
+        ${{ github.event.client_payload.issue_body }}"
+          
+          # Create issue without label first
+          WRAPPER_ISSUE=$(gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            | grep -oE '[0-9]+$')
+          
+          # Try to add synced label (ignore if it doesn't exist)
+          gh issue edit $WRAPPER_ISSUE --add-label "synced" || true
+          
+          echo "Created new wrapper issue #$WRAPPER_ISSUE"
+        else
+          echo "Found existing wrapper issue #$WRAPPER_ISSUE"
+        fi
+        
+        echo "wrapper_number=$WRAPPER_ISSUE" >> $GITHUB_OUTPUT
+    
+    - name: Update Wrapper Issue
+      env:
+        GITHUB_TOKEN: ${{ secrets.META_REPO_TOKEN }}
+      run: |
+        WRAPPER_NUMBER="${{ steps.wrapper.outputs.wrapper_number }}"
+        SOURCE_LABELS="${{ github.event.client_payload.labels }}"
+        
+        # Update title if changed
+        gh issue edit $WRAPPER_NUMBER \
+          --title "[$${{ github.event.client_payload.source_repo }}#$${{ github.event.client_payload.issue_number }}] ${{ github.event.client_payload.issue_title }}"
+        
+        # Sync labels (remove old sync labels, add new ones)
+        # First remove all existing status/priority labels
+        CURRENT_LABELS=$(gh issue view $WRAPPER_NUMBER --json labels --jq '.labels[].name' | grep -E '^(status-|priority-)' || true)
+        if [ ! -z "$CURRENT_LABELS" ]; then
+          echo "$CURRENT_LABELS" | xargs -I {} gh issue edit $WRAPPER_NUMBER --remove-label "{}"
+        fi
+        
+        # Add new labels from source
+        if [ ! -z "$SOURCE_LABELS" ]; then
+          IFS=',' read -ra LABEL_ARRAY <<< "$SOURCE_LABELS"
+          for label in "${LABEL_ARRAY[@]}"; do
+            if [[ $label == status-* ]] || [[ $label == priority-* ]]; then
+              gh issue edit $WRAPPER_NUMBER --add-label "$label" || true
+            fi
+          done
+        fi
+        
+        # Handle closed state
+        if [ "${{ github.event.client_payload.issue_state }}" = "closed" ]; then
+          gh issue close $WRAPPER_NUMBER || true
+        else
+          gh issue reopen $WRAPPER_NUMBER || true
+        fi

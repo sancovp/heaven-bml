@@ -1,0 +1,47 @@
+{
+  "name": "HEAVEN Ecosystem",
+  "description": "AI Development Operating System - Complete framework for AI agents and automation",
+  "type": "ecosystem_meta",
+  "sections": {
+    "Core Framework": {
+      "description": "Essential components that power the HEAVEN system",
+      "repos": [
+        "sancovp/heaven-base",
+        "sancovp/heaven-bml-system"
+      ],
+      "auto_discover": true,
+      "show_stats": true
+    },
+    "Specialized Libraries": {
+      "description": "Focused tools for specific AI development needs",
+      "repos": [
+        "sancovp/heaven-prompt-injection",
+        "sancovp/heaven-research",
+        "sancovp/heaven-codebase-analyzer"
+      ],
+      "auto_discover": false,
+      "show_stats": true
+    },
+    "Community Tools": {
+      "description": "Open source tools and workflows for the community",
+      "repos": [
+        "sancovp/heaven-workflows"
+      ],
+      "auto_discover": true,
+      "show_stats": false
+    }
+  },
+  "template": "ecosystem",
+  "auto_update": true,
+  "badges": {
+    "license": true,
+    "version": true,
+    "stars": true,
+    "last_updated": true
+  },
+  "links": {
+    "Documentation": "https://docs.heaven-ai.com",
+    "Discord": "https://discord.gg/heaven",
+    "Website": "https://heaven-ai.com"
+  }
+}
