@@ -442,21 +442,27 @@ Build-Measure-Learn project management using GitHub's native features:
             }
     
     def create_ecosystem_repo(self, repo_name: str, ecosystem_type: str = 'ecosystem_meta') -> dict:
-        """Create a new repository with ecosystem configuration"""
+        """Create a new repository with ecosystem configuration - wraps create_repo_with_type"""
         import subprocess
         
         try:
-            # Create repository
-            owner = repo_name.split('/')[0]
-            name = repo_name.split('/')[1]
-            
-            private_flag = '--private' if ecosystem_type == 'personal_meta' else '--public'
+            # Use existing create_repo_with_type function
+            private = ecosystem_type == 'personal_meta'
             description = f'HEAVEN {ecosystem_type.replace("_", " ").title()} Repository'
             
-            cmd = f'gh repo create {repo_name} {private_flag} --description "{description}"'
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            # Create the repo using existing function
+            create_result = self.create_repo_with_type(repo_name, description, private)
             
-            # Create initial ecosystem.json
+            # Check if creation was successful
+            if "❌" in create_result:
+                return {
+                    'success': False,
+                    'error': create_result
+                }
+            
+            # Now add ecosystem.json to the created repo
+            name = repo_name.split('/')[1]
+            
             if ecosystem_type == 'personal_meta':
                 initial_config = {
                     'name': 'Personal Development Hub',
@@ -509,19 +515,17 @@ Build-Measure-Learn project management using GitHub's native features:
             cmd = f'gh api repos/{repo_name}/contents/ecosystem.json -f message="Initialize ecosystem configuration" -f content="{encoded_content}"'
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
             
-            # Install BML workflows (which now includes ecosystem README workflow)
-            install_result = self.install_bml_workflows(repo_name)
-            
             return {
                 'success': True,
                 'repo_name': repo_name,
                 'ecosystem_type': ecosystem_type,
-                'message': f'Ecosystem repository {repo_name} created successfully with {ecosystem_type} configuration | {install_result}'
+                'message': f'Ecosystem repository {repo_name} created successfully | {create_result}'
             }
+            
         except subprocess.CalledProcessError as e:
             return {
                 'success': False,
-                'error': f'GitHub error: {e.stderr if e.stderr else "Unknown error"}'
+                'error': f'GitHub error adding ecosystem.json: {e.stderr if e.stderr else "Unknown error"}'
             }
         except Exception as e:
             return {
