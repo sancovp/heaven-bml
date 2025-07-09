@@ -1,0 +1,40 @@
+# Development scripts
+*.sh
+deploy_*.py
+*_addition.py
+mcp_ecosystem_functions.py
+
+# Development workflow files
+*-public-release.yml
+test-*.yml
+working-*.yml
+fixed-*.yml
+simple-*.yml
+
+# Development guides
+*-setup-guide.md
+
+# Temporary files
+*.tmp
+*.temp
+readme_*.txt
+readme_*.json
+*_data.json
+generator_data.json
+workflow_data.json
+receiver_update.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
