@@ -15,14 +15,12 @@ jobs:
     
     - name: Auto-label new issues
       if: github.event.action == 'opened' && github.event_name == 'issues'
-      run:  < /dev/null | 
+      run: |
         # Add default status-backlog label to new issues
         gh issue edit ${{ github.event.issue.number }} --add-label "status-backlog"
         
-        # Add priority-medium as default if no priority exists
-        if \! gh issue view ${{ github.event.issue.number }} --json labels | grep -q "priority-"; then
-          gh issue edit ${{ github.event.issue.number }} --add-label "priority-medium"
-        fi
+        # Note: Priority labels are managed by BML system - no default priority needed
+        # Issues without priority labels are handled by the BML tree notation system
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
