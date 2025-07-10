@@ -19,6 +19,7 @@ class BMLTools(str, Enum):
     LIST_ISSUES = "list_issues"
     GET_ISSUE = "get_issue"
     CREATE_ISSUE = "create_issue"
+    EDIT_ISSUE = "edit_issue"
     MOVE_ISSUE_ABOVE = "move_issue_above"
     MOVE_ISSUE_BELOW = "move_issue_below"
     MOVE_ISSUE_BETWEEN = "move_issue_between"
@@ -182,6 +183,27 @@ class BMLServer:
         else:
             # Stub implementation
             return {"repo": repo, "title": title, "body": body, "labels": labels, "created": True}
+    
+    def edit_issue(self, issue_id: str, title: str = None, body: str = None, repo: str = None) -> dict:
+        """Edit an existing issue's title and/or body"""
+        repo = repo or self.default_repo
+        
+        if USING_REAL_FUNCTIONS:
+            import subprocess
+            try:
+                cmd = ["gh", "issue", "edit", str(issue_id), "--repo", repo]
+                if title:
+                    cmd.extend(["--title", title])
+                if body:
+                    cmd.extend(["--body", body])
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                return {"repo": repo, "issue_id": issue_id, "updated": True, "title": title, "body": body}
+            except subprocess.CalledProcessError as e:
+                return {"repo": repo, "issue_id": issue_id, "error": f"Failed to edit issue: {e.stderr}"}
+        else:
+            # Stub implementation
+            return {"repo": repo, "issue_id": issue_id, "title": title, "body": body, "updated": True}
     
     def move_issue_above(self, issue_id: str, target_issue_id: str, repo: str = None) -> str:
         """Move issue above target issue in priority"""
@@ -619,6 +641,32 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                 },
             ),
             Tool(
+                name=BMLTools.EDIT_ISSUE.value,
+                description="Edit an existing GitHub issue's title and/or body",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "issue_id": {
+                            "type": "string",
+                            "description": "GitHub issue ID",
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "New issue title (optional)",
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "New issue body/description (optional)",
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": f"GitHub repository (default: {default_repo})",
+                        }
+                    },
+                    "required": ["issue_id"],
+                },
+            ),
+            Tool(
                 name=BMLTools.MOVE_ISSUE_ABOVE.value,
                 description="Move issue above target issue. INTELLIGENT ALGORITHM: Preserves all relative positions and parent-child relationships while placing the issue exactly above the target. The system reorganizes priorities to maintain clean integer-based tree notation (1, 1.1, 1.2, 2, 2.1...). Numbers may change but positions and relationships are always preserved.",
                 inputSchema={
@@ -883,6 +931,17 @@ async def serve(default_repo: str = "sancovp/heaven-base") -> None:
                         title,
                         arguments.get("body", ""),
                         arguments.get("labels"),
+                        arguments.get("repo")
+                    )
+                
+                case BMLTools.EDIT_ISSUE.value:
+                    issue_id = arguments.get("issue_id")
+                    if not issue_id:
+                        raise ValueError("Missing required argument: issue_id")
+                    result = bml_server.edit_issue(
+                        issue_id,
+                        arguments.get("title"),
+                        arguments.get("body"),
                         arguments.get("repo")
                     )
                 
