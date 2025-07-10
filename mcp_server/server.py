@@ -41,7 +41,8 @@ try:
         move_issue_above,
         move_issue_below, 
         move_issue_between,
-        set_issue_tree_priority
+        set_issue_tree_priority,
+        construct_tree_kanban
     )
     from heaven_bml.github_kanban import (
         construct_kanban_from_labels,
@@ -216,9 +217,9 @@ class BMLServer:
             return f"STUB: Set issue {issue_id} to priority {priority} in {repo}"
     
     def view_kanban(self, repo: str = None) -> dict:
-        """Get complete kanban board view"""
+        """Get complete kanban board view with tree priority sorting"""
         repo = repo or self.default_repo
-        kanban = construct_kanban_from_labels(repo)
+        kanban = construct_tree_kanban(repo)
         return {
             "repo": repo, 
             "kanban": {

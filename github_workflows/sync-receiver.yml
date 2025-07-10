@@ -69,18 +69,18 @@ jobs:
         gh issue edit $WRAPPER_NUMBER \
           --title "[$${{ github.event.client_payload.source_repo }}#$${{ github.event.client_payload.issue_number }}] ${{ github.event.client_payload.issue_title }}"
         
-        # Sync labels (remove old sync labels, add new ones)
-        # First remove all existing status/priority labels
-        CURRENT_LABELS=$(gh issue view $WRAPPER_NUMBER --json labels --jq '.labels[].name' | grep -E '^(status-|priority-)' || true)
+        # Sync STATUS labels only (NOT priority - those are managed in meta repo)
+        # First remove all existing status labels
+        CURRENT_LABELS=$(gh issue view $WRAPPER_NUMBER --json labels --jq '.labels[].name' | grep -E '^status-' || true)
         if [ ! -z "$CURRENT_LABELS" ]; then
           echo "$CURRENT_LABELS" | xargs -I {} gh issue edit $WRAPPER_NUMBER --remove-label "{}"
         fi
         
-        # Add new labels from source
+        # Add new STATUS labels from source (skip priority labels)
         if [ ! -z "$SOURCE_LABELS" ]; then
           IFS=',' read -ra LABEL_ARRAY <<< "$SOURCE_LABELS"
           for label in "${LABEL_ARRAY[@]}"; do
-            if [[ $label == status-* ]] || [[ $label == priority-* ]]; then
+            if [[ $label == status-* ]]; then
               gh issue edit $WRAPPER_NUMBER --add-label "$label" || true
             fi
           done

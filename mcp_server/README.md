@@ -12,15 +12,27 @@ Build-Measure-Learn GitHub project management for AI agents via Model Context Pr
 ## Installation
 
 ```bash
-pip install mcp[cli] pydantic
-# TODO: pip install heaven-bml-system (when released)
+pip install heaven-bml
 ```
 
 ## Usage
 
-### As MCP Server
+### With Claude Code (Recommended)
+
+Add the MCP server to Claude Code:
+
 ```bash
-python -m bml_mcp_prototype --default-repo "your-org/your-repo"
+claude mcp add heaven-bml -e GITHUB_TOKEN="your_github_token_here" -- python3 -m mcp_server --default-repo your-org/your-repo
+```
+
+Replace:
+- `your_github_token_here` with your GitHub Personal Access Token
+- `your-org/your-repo` with your default GitHub repository
+- `python3` with your Python executable path if needed
+
+### As Standalone MCP Server
+```bash
+python -m mcp_server --default-repo "your-org/your-repo"
 ```
 
 ### Available Tools
