@@ -641,34 +641,44 @@ def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base
         
         slot_to_priority[global_slot_key] = priority
     
-    # Batch update all issues
-    success_count = 0
-    total_issues = len(all_issues)
+    # Single bulk CLI command for all issues
+    import subprocess
     
-    for issue in all_issues:
-        global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
-        priority = slot_to_priority[global_slot_key]
+    # Build single batch command
+    try:
+        # Create needed labels first
+        unique_priorities = set()
+        unique_statuses = set()
+        for issue in all_issues:
+            global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
+            priority = slot_to_priority[global_slot_key]
+            unique_priorities.add(priority)
+            unique_statuses.add(issue['lane'])
         
-        try:
-            # Update both priority and status labels in one operation
-            success = update_issue_priority_and_status(
-                repo, 
-                issue['issueId'], 
-                priority, 
-                issue['lane']
-            )
+        for priority in unique_priorities:
+            subprocess.run(f'gh api repos/{repo}/labels -f name="priority-{priority}" -f color="1f77b4" -f description="Tree priority {priority}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for status in unique_statuses:
+            subprocess.run(f'gh api repos/{repo}/labels -f name="status-{status}" -f color="2ca02c" -f description="Status {status}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
+        # Build parallel commands
+        commands = []
+        for issue in all_issues:
+            global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
+            priority = slot_to_priority[global_slot_key]
             
-            if success:
-                success_count += 1
-                print(f"✅ Updated issue #{issue['issueId']}: priority={priority}, status={issue['lane']}")
-            else:
-                print(f"❌ Failed to update issue #{issue['issueId']}")
-                
-        except Exception as e:
-            print(f"❌ Error updating issue #{issue['issueId']}: {e}")
-    
-    print(f"\nSync complete: {success_count}/{total_issues} issues updated")
-    return success_count == total_issues
+            # Single command to set priority and status labels
+            cmd = f'gh issue edit {issue["issueId"]} --repo {repo} --add-label priority-{priority} --add-label status-{issue["lane"]}'
+            commands.append(cmd)
+        
+        # Execute all commands in parallel
+        batch_cmd = ' & '.join(commands) + ' & wait'
+        result = subprocess.run(batch_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Debug error: {e}")
+        return False
 
 
 def update_issue_priority_and_status(repo: str, issue_number: int, priority: str, status: str) -> bool:
@@ -691,7 +701,7 @@ def update_issue_priority_and_status(repo: str, issue_number: int, priority: str
     try:
         # Get current labels
         cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         if result.stdout.strip().startswith('{'):
             labels_data = json.loads(result.stdout)
@@ -706,13 +716,13 @@ def update_issue_priority_and_status(repo: str, issue_number: int, priority: str
             # Remove old labels
             for label_name in labels_to_remove:
                 subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label_name}"', 
-                             shell=True, capture_output=True)
+                             shell=True, capture_output=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Add new priority and status labels
         new_labels = [f'priority-{priority}', f'status-{status}']
         for label in new_labels:
             cmd = f'gh issue edit {issue_number} --repo {repo} --add-label "{label}"'
-            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+            subprocess.run(cmd, shell=True, check=True, capture_output=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         return True
         
