@@ -273,7 +273,7 @@ class BMLServer:
                 "measure": [format_issue_with_priority(issue) for issue in kanban.measure],
                 "learn": [format_issue_with_priority(issue) for issue in kanban.learn],
                 "blocked": [format_issue_with_priority(issue) for issue in kanban.blocked],
-                "archived": [format_issue_with_priority(issue) for issue in kanban.archived]
+                "archived_count": len(kanban.archived)
             }
         }
     
