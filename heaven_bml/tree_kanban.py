@@ -586,6 +586,7 @@ def print_tree_kanban_board(repo: str) -> None:
 def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base') -> bool:
     """
     Sync frontend slot map to GitHub priorities and status labels.
+    EVERY issue in the repo gets reprioritized based on global position.
     
     Args:
         slot_map: Dictionary with lanes as keys, each containing list of 
@@ -601,78 +602,112 @@ def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base
     # BML workflow order (learn is highest priority)
     lane_order = ['learn', 'measure', 'build', 'plan', 'backlog']
     
-    # Flatten all issues across lanes with their lane info
-    all_issues = []
+    # First, get ALL issues in the repo to clear their priorities
+    cmd = f'gh issue list --repo {repo} --json number --limit 1000'
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    all_repo_issues = json.loads(result.stdout) if result.returncode == 0 else []
+    
+    # Flatten slot map issues across lanes with their lane info
+    slot_issues = []
     for lane in lane_order:
         if lane in slot_map:
             for slot_index, issue_data in enumerate(slot_map[lane]):
-                all_issues.append({
+                slot_issues.append({
                     'issueId': issue_data['issueId'],
                     'parentSlot': issue_data['parentSlot'],
                     'lane': lane,
-                    'slotIndex': slot_index
+                    'slotIndex': slot_index,
+                    'lane_position': f"{lane}_{slot_index}"
                 })
     
-    # Calculate priorities
-    slot_to_priority = {}  # slotIndex -> priority string
-    root_priority_counter = 1
+    # Build parent-child mapping within each lane
+    lane_parent_map = {}  # lane_position -> list of child lane_positions
+    for issue in slot_issues:
+        if issue['parentSlot'] is not None:
+            parent_key = f"{issue['lane']}_{issue['parentSlot']}"
+            if parent_key not in lane_parent_map:
+                lane_parent_map[parent_key] = []
+            lane_parent_map[parent_key].append(issue['lane_position'])
     
-    for issue in all_issues:
-        global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
+    # Calculate global priorities with tree notation
+    priority_map = {}  # issueId -> priority string
+    global_counter = 1
+    
+    def assign_priority(issue, parent_priority=None):
+        nonlocal global_counter
         
-        if issue['parentSlot'] is None:
-            # Top-level issue gets next sequential priority
-            priority = str(root_priority_counter)
-            root_priority_counter += 1
+        if parent_priority is None:
+            # Root issue gets next global number
+            priority = str(global_counter)
+            global_counter += 1
         else:
-            # Child issue: find parent priority, count siblings, assign next child number
-            parent_slot_key = f"{issue['lane']}_{issue['parentSlot']}"
-            if parent_slot_key not in slot_to_priority:
-                print(f"Error: Parent slot {parent_slot_key} not found for issue {issue['issueId']}")
-                return False
-                
-            parent_priority = slot_to_priority[parent_slot_key]
-            
-            # Count existing children of this parent
-            existing_children = [p for p in slot_to_priority.values() 
+            # Child issue gets parent.X notation
+            existing_children = [p for p in priority_map.values() 
                                if p.startswith(f"{parent_priority}.")]
             child_number = len(existing_children) + 1
             priority = f"{parent_priority}.{child_number}"
         
-        slot_to_priority[global_slot_key] = priority
+        priority_map[issue['issueId']] = priority
+        
+        # Process children
+        if issue['lane_position'] in lane_parent_map:
+            for child_pos in lane_parent_map[issue['lane_position']]:
+                child_issue = next(i for i in slot_issues if i['lane_position'] == child_pos)
+                assign_priority(child_issue, priority)
     
-    # Single bulk CLI command for all issues
-    import subprocess
+    # Process all root issues (parentSlot is None) in lane order
+    for lane in lane_order:
+        root_issues = [i for i in slot_issues if i['lane'] == lane and i['parentSlot'] is None]
+        # Sort by slot index to maintain order within lane
+        root_issues.sort(key=lambda x: x['slotIndex'])
+        for issue in root_issues:
+            assign_priority(issue)
     
-    # Build single batch command
+    # Build batch commands
     try:
-        # Create needed labels first
-        unique_priorities = set()
-        unique_statuses = set()
-        for issue in all_issues:
-            global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
-            priority = slot_to_priority[global_slot_key]
-            unique_priorities.add(priority)
-            unique_statuses.add(issue['lane'])
+        # Create all needed labels
+        unique_priorities = set(priority_map.values())
+        unique_statuses = set(issue['lane'] for issue in slot_issues)
         
         for priority in unique_priorities:
-            subprocess.run(f'gh api repos/{repo}/labels -f name="priority-{priority}" -f color="1f77b4" -f description="Tree priority {priority}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(f'gh api repos/{repo}/labels -f name="priority-{priority}" -f color="1f77b4" -f description="Tree priority {priority}"', 
+                         shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for status in unique_statuses:
-            subprocess.run(f'gh api repos/{repo}/labels -f name="status-{status}" -f color="2ca02c" -f description="Status {status}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(f'gh api repos/{repo}/labels -f name="status-{status}" -f color="2ca02c" -f description="Status {status}"', 
+                         shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Build parallel commands
+        # Build commands: safely remove ALL existing priority/status labels from ALL issues
         commands = []
-        for issue in all_issues:
-            global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
-            priority = slot_to_priority[global_slot_key]
+        
+        # First get existing labels for each issue and remove priority/status labels
+        for issue in all_repo_issues:
+            # Get current labels for this issue
+            get_labels_cmd = f'gh issue view {issue["number"]} --repo {repo} --json labels'
+            result = subprocess.run(get_labels_cmd, shell=True, capture_output=True, text=True)
             
-            # Single command to set priority and status labels
-            cmd = f'gh issue edit {issue["issueId"]} --repo {repo} --add-label priority-{priority} --add-label status-{issue["lane"]}'
+            if result.returncode == 0 and result.stdout.strip():
+                try:
+                    labels_data = json.loads(result.stdout)
+                    current_labels = labels_data.get('labels', [])
+                    
+                    # Remove any existing priority- or status- labels
+                    for label in current_labels:
+                        if label['name'].startswith('priority-') or label['name'].startswith('status-'):
+                            cmd = f'gh issue edit {issue["number"]} --repo {repo} --remove-label "{label["name"]}"'
+                            commands.append(cmd)
+                except:
+                    pass  # Skip if JSON parsing fails
+        
+        # Then add new labels to issues in slot map
+        for issue in slot_issues:
+            priority = priority_map[issue['issueId']]
+            cmd = f'gh issue edit {issue["issueId"]} --repo {repo} --add-label "priority-{priority}" --add-label "status-{issue["lane"]}"'
             commands.append(cmd)
         
         # Execute all commands in parallel
-        batch_cmd = ' & '.join(commands) + ' & wait'
-        result = subprocess.run(batch_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if commands:
+            batch_cmd = ' & '.join(commands) + ' & wait'
+            result = subprocess.run(batch_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         return True
         
