@@ -242,16 +242,38 @@ class BMLServer:
         """Get complete kanban board view with tree priority sorting"""
         repo = repo or self.default_repo
         kanban = construct_tree_kanban(repo)
+        
+        def format_issue_with_priority(issue):
+            """Format issue with priority and tree indentation"""
+            priority = None
+            for label in issue.labels:
+                if label.startswith('priority-'):
+                    priority = label[9:]  # Remove 'priority-' prefix
+                    break
+            
+            # Calculate indentation based on tree depth
+            indent = ""
+            if priority and priority != 'none':
+                depth = priority.count('.')
+                indent = "  " * depth + "- " if depth > 0 else "- "
+            
+            return {
+                "number": issue.number,
+                "title": issue.title,
+                "priority": priority or "none",
+                "formatted_title": f"{indent}{issue.title}" if indent else issue.title
+            }
+        
         return {
             "repo": repo, 
             "kanban": {
-                "backlog": [{"number": issue.number, "title": issue.title} for issue in kanban.backlog],
-                "plan": [{"number": issue.number, "title": issue.title} for issue in kanban.plan],
-                "build": [{"number": issue.number, "title": issue.title} for issue in kanban.build],
-                "measure": [{"number": issue.number, "title": issue.title} for issue in kanban.measure],
-                "learn": [{"number": issue.number, "title": issue.title} for issue in kanban.learn],
-                "blocked": [{"number": issue.number, "title": issue.title} for issue in kanban.blocked],
-                "archived": [{"number": issue.number, "title": issue.title} for issue in kanban.archived]
+                "backlog": [format_issue_with_priority(issue) for issue in kanban.backlog],
+                "plan": [format_issue_with_priority(issue) for issue in kanban.plan],
+                "build": [format_issue_with_priority(issue) for issue in kanban.build],
+                "measure": [format_issue_with_priority(issue) for issue in kanban.measure],
+                "learn": [format_issue_with_priority(issue) for issue in kanban.learn],
+                "blocked": [format_issue_with_priority(issue) for issue in kanban.blocked],
+                "archived": [format_issue_with_priority(issue) for issue in kanban.archived]
             }
         }
     

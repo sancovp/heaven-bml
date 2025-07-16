@@ -1,67 +1,80 @@
-# HEAVEN Ecosystem
+# HEAVEN BML System
 
-AI Development Operating System - Complete framework for AI agents and automation
+Build-Measure-Learn GitHub project management for AI agents.
 
-## Quick Links
+## Installation
 
-- [Documentation](https://docs.heaven-ai.com)
-- [Discord](https://discord.gg/heaven)
-- [Website](https://heaven-ai.com)
+```bash
+pip install heaven-bml
+```
 
-## Core Framework
+## Quick Start
 
-Essential components that power the HEAVEN system
+```python
+# Import BML functions
+from heaven_bml import (
+    construct_kanban_from_labels,
+    get_all_prioritized_issues,
+    move_issue_above,
+    move_issue_below,
+    create_github_issue_with_status
+)
 
-### [heaven-base](https://github.com/sancovp/heaven-base)
-HEAVEN Base - Hierarchical, Embodied, Autonomously Validating Evolution Network - Core Framework
+# View your kanban board
+kanban = construct_kanban_from_labels('your-org/your-repo')
+print(f"Backlog: {len(kanban.backlog)} items")
+print(f"Plan: {len(kanban.plan)} items")
+print(f"Build: {len(kanban.build)} items")
 
-![License](https://img.shields.io/badge/license-MIT License-blue.svg) ![Stars](https://img.shields.io/github/stars/sancovp/heaven-base.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
+# Create a new issue with BML status
+create_github_issue_with_status(
+    'your-org/your-repo',
+    'Implement feature X',
+    'Details about the feature',
+    'plan'
+)
 
-⭐ 1 stars
+# Manage priorities with tree notation
+move_issue_above('123', '456', 'your-org/your-repo')
+```
 
-### [heaven-bml-system](https://github.com/sancovp/heaven-bml-system)
-Universal
+## Features
 
-![License](https://img.shields.io/badge/license-Other-blue.svg) ![Stars](https://img.shields.io/github/stars/sancovp/heaven-bml-system.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-08-lightgrey.svg)
+### 🌳 Tree Notation Priorities
+- **Infinite hierarchy**: priority-1.2.3.4.5...
+- **Automatic sorting**: Natural tree order in kanban
+- **Dynamic reordering**: Move issues above/below/between
 
-⭐ 0 stars
+### 📋 GitHub Kanban States
+- **Backlog** → **Plan** → **Build** → **Measure** → **Learn** → **Archived**
+- **Label-based**: Uses GitHub labels for state management
+- **API integration**: Real-time GitHub synchronization
 
-## Specialized Libraries
+### 🤖 MCP Server for Claude Code
+```bash
+# Configure Claude Desktop
+python -m mcp_server --default-repo "your-org/your-repo"
+```
 
-Focused tools for specific AI development needs
+### 🔄 GitHub Workflow Automation
+```bash
+# Install BML workflows in your repository
+python -m heaven_bml.setup_scripts.install_bml_workflows --repo your-org/your-repo
+```
 
-### [heaven-prompt-injection](https://github.com/sancovp/heaven-prompt-injection)
-Repository information unavailable
+## Requirements
 
-![Stars](https://img.shields.io/github/stars/sancovp/heaven-prompt-injection.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
+- Python 3.8+
+- GitHub Personal Access Token with repo permissions
+- Set `GITHUB_TOKEN` environment variable
 
-⭐ 0 stars
+## License
 
-### [heaven-research](https://github.com/sancovp/heaven-research)
-Repository information unavailable
-
-![Stars](https://img.shields.io/github/stars/sancovp/heaven-research.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
-
-⭐ 0 stars
-
-### [heaven-codebase-analyzer](https://github.com/sancovp/heaven-codebase-analyzer)
-Repository information unavailable
-
-![Stars](https://img.shields.io/github/stars/sancovp/heaven-codebase-analyzer.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
-
-⭐ 0 stars
-
-## Community Tools
-
-Open source tools and workflows for the community
-
-### [heaven-workflows](https://github.com/sancovp/heaven-workflows)
-Repository information unavailable
-
-![Stars](https://img.shields.io/github/stars/sancovp/heaven-workflows.svg?style=social) ![Updated](https://img.shields.io/badge/updated-2025-07-09-lightgrey.svg)
-
-⭐ 0 stars
+HEAVEN BML System License
+- ✅ Personal and commercial use allowed
+- ✅ Modification and distribution allowed
+- **Required attribution**: "Powered by HEAVEN BML System"
 
 ---
 
-*Generated automatically on 2025-07-09 08:10:19 UTC*
+**Powered by HEAVEN BML System**
