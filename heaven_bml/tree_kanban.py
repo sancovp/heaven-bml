@@ -582,3 +582,141 @@ def print_tree_kanban_board(repo: str) -> None:
     else:
         print("\nBuild: empty")
 
+
+def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base') -> bool:
+    """
+    Sync frontend slot map to GitHub priorities and status labels.
+    
+    Args:
+        slot_map: Dictionary with lanes as keys, each containing list of 
+                 {issueId: int, parentSlot: int|None} objects
+        repo: GitHub repository
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    import subprocess
+    import json
+    
+    # BML workflow order (learn is highest priority)
+    lane_order = ['learn', 'measure', 'build', 'plan', 'backlog']
+    
+    # Flatten all issues across lanes with their lane info
+    all_issues = []
+    for lane in lane_order:
+        if lane in slot_map:
+            for slot_index, issue_data in enumerate(slot_map[lane]):
+                all_issues.append({
+                    'issueId': issue_data['issueId'],
+                    'parentSlot': issue_data['parentSlot'],
+                    'lane': lane,
+                    'slotIndex': slot_index
+                })
+    
+    # Calculate priorities
+    slot_to_priority = {}  # slotIndex -> priority string
+    root_priority_counter = 1
+    
+    for issue in all_issues:
+        global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
+        
+        if issue['parentSlot'] is None:
+            # Top-level issue gets next sequential priority
+            priority = str(root_priority_counter)
+            root_priority_counter += 1
+        else:
+            # Child issue: find parent priority, count siblings, assign next child number
+            parent_slot_key = f"{issue['lane']}_{issue['parentSlot']}"
+            if parent_slot_key not in slot_to_priority:
+                print(f"Error: Parent slot {parent_slot_key} not found for issue {issue['issueId']}")
+                return False
+                
+            parent_priority = slot_to_priority[parent_slot_key]
+            
+            # Count existing children of this parent
+            existing_children = [p for p in slot_to_priority.values() 
+                               if p.startswith(f"{parent_priority}.")]
+            child_number = len(existing_children) + 1
+            priority = f"{parent_priority}.{child_number}"
+        
+        slot_to_priority[global_slot_key] = priority
+    
+    # Batch update all issues
+    success_count = 0
+    total_issues = len(all_issues)
+    
+    for issue in all_issues:
+        global_slot_key = f"{issue['lane']}_{issue['slotIndex']}"
+        priority = slot_to_priority[global_slot_key]
+        
+        try:
+            # Update both priority and status labels in one operation
+            success = update_issue_priority_and_status(
+                repo, 
+                issue['issueId'], 
+                priority, 
+                issue['lane']
+            )
+            
+            if success:
+                success_count += 1
+                print(f"✅ Updated issue #{issue['issueId']}: priority={priority}, status={issue['lane']}")
+            else:
+                print(f"❌ Failed to update issue #{issue['issueId']}")
+                
+        except Exception as e:
+            print(f"❌ Error updating issue #{issue['issueId']}: {e}")
+    
+    print(f"\nSync complete: {success_count}/{total_issues} issues updated")
+    return success_count == total_issues
+
+
+def update_issue_priority_and_status(repo: str, issue_number: int, priority: str, status: str) -> bool:
+    """
+    Update both priority and status labels for an issue in a single operation.
+    """
+    import subprocess
+    import json
+    
+    # Create priority label if needed
+    if not create_priority_label_if_needed(repo, priority):
+        print(f"Failed to create priority label for {priority}")
+        return False
+    
+    # Create status label if needed
+    if not create_status_label_if_needed(repo, status):
+        print(f"Failed to create status label for {status}")
+        return False
+    
+    try:
+        # Get current labels
+        cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+        
+        if result.stdout.strip().startswith('{'):
+            labels_data = json.loads(result.stdout)
+            current_labels = labels_data.get('labels', [])
+            
+            # Remove old priority and status labels
+            labels_to_remove = []
+            for label in current_labels:
+                if label['name'].startswith('priority-') or label['name'].startswith('status-'):
+                    labels_to_remove.append(label['name'])
+            
+            # Remove old labels
+            for label_name in labels_to_remove:
+                subprocess.run(f'gh issue edit {issue_number} --repo {repo} --remove-label "{label_name}"', 
+                             shell=True, capture_output=True)
+        
+        # Add new priority and status labels
+        new_labels = [f'priority-{priority}', f'status-{status}']
+        for label in new_labels:
+            cmd = f'gh issue edit {issue_number} --repo {repo} --add-label "{label}"'
+            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error updating issue #{issue_number}: {e}")
+        return False
+

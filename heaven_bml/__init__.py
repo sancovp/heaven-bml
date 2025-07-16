@@ -19,7 +19,8 @@ from .tree_kanban import (
     create_priority_label_if_needed,
     print_tree_kanban_board,
     parse_tree_priority,
-    get_issue_priority_string
+    get_issue_priority_string,
+    sync_slot_map_to_priorities
 )
 
 from .agent_wrappers import (
@@ -57,6 +58,7 @@ __all__ = [
     'print_tree_kanban_board',
     'parse_tree_priority',
     'get_issue_priority_string',
+    'sync_slot_map_to_priorities',
     
     # Agent Wrappers
     'BMLAgentWrapper',
