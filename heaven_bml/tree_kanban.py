@@ -676,44 +676,109 @@ def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base
             subprocess.run(f'gh api repos/{repo}/labels -f name="status-{status}" -f color="2ca02c" -f description="Status {status}"', 
                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Build commands: safely remove ALL existing priority/status labels from ALL issues
-        commands = []
-        
-        # First get existing labels for each issue and remove priority/status labels
-        for issue in all_repo_issues:
-            # Get current labels for this issue
-            get_labels_cmd = f'gh issue view {issue["number"]} --repo {repo} --json labels'
-            result = subprocess.run(get_labels_cmd, shell=True, capture_output=True, text=True)
+        # Use batch versions of existing heaven-bml functions with safeguards
+        try:
+            # Create all needed labels first
+            for priority in unique_priorities:
+                create_priority_label_if_needed(repo, priority)
+            for status in unique_statuses:
+                create_status_label_if_needed(repo, status)
             
-            if result.returncode == 0 and result.stdout.strip():
-                try:
-                    labels_data = json.loads(result.stdout)
-                    current_labels = labels_data.get('labels', [])
-                    
-                    # Remove any existing priority- or status- labels
-                    for label in current_labels:
-                        if label['name'].startswith('priority-') or label['name'].startswith('status-'):
-                            cmd = f'gh issue edit {issue["number"]} --repo {repo} --remove-label "{label["name"]}"'
-                            commands.append(cmd)
-                except:
-                    pass  # Skip if JSON parsing fails
-        
-        # Then add new labels to issues in slot map
-        for issue in slot_issues:
-            priority = priority_map[issue['issueId']]
-            cmd = f'gh issue edit {issue["issueId"]} --repo {repo} --add-label "priority-{priority}" --add-label "status-{issue["lane"]}"'
-            commands.append(cmd)
-        
-        # Execute all commands in parallel
-        if commands:
-            batch_cmd = ' & '.join(commands) + ' & wait'
-            result = subprocess.run(batch_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        return True
+            # Build update maps
+            priority_updates = {}  # issue_id -> priority
+            status_updates = {}    # issue_id -> status
+            
+            for issue in slot_issues:
+                priority = priority_map[issue['issueId']]
+                priority_updates[issue['issueId']] = priority
+                status_updates[issue['issueId']] = issue['lane']
+            
+            # Batch update priorities and statuses with safeguards
+            success = batch_update_priorities_and_statuses(
+                all_repo_issues, priority_updates, status_updates, repo
+            )
+            
+            return success
+            
+        except Exception as e:
+            print(f"Sync error: {e}")
+            return False
         
     except Exception as e:
         print(f"Debug error: {e}")
         return False
+
+
+def batch_update_priorities_and_statuses(all_repo_issues, priority_updates, status_updates, repo):
+    """
+    Batch update priorities and statuses with heaven-bml safeguards.
+    Copies the safety logic from set_issue_tree_priority and set_issue_status.
+    """
+    import subprocess
+    import json
+    
+    # Step 1: Remove ALL existing priority/status labels from ALL issues (with safeguards)
+    removal_commands = []
+    
+    for issue in all_repo_issues:
+        issue_number = issue['number']
+        
+        # Get current labels with JSON parsing protection (copied from set_issue_tree_priority)
+        try:
+            cmd = f'gh issue view {issue_number} --repo {repo} --json labels'
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+            
+            # Debug JSON parsing (copied safeguard)
+            try:
+                labels_data = json.loads(result.stdout)
+                labels = labels_data['labels']
+            except json.JSONDecodeError:
+                # Just continue silently - GitHub CLI sometimes returns non-JSON
+                labels = []
+            
+            # Remove existing priority/status labels
+            for label in labels:
+                if label['name'].startswith('priority-') or label['name'].startswith('status-'):
+                    removal_cmd = f'gh issue edit {issue_number} --repo {repo} --remove-label "{label["name"]}"'
+                    removal_commands.append(removal_cmd)
+                    
+        except Exception:
+            # Silently continue - GitHub CLI errors are common during bulk operations
+            pass
+    
+    # Step 2: Add new priority labels (separate from status for reliability)
+    priority_commands = []
+    for issue_id, priority in priority_updates.items():
+        cmd = f'gh issue edit {issue_id} --repo {repo} --add-label "priority-{priority}"'
+        priority_commands.append(cmd)
+    
+    # Step 3: Add new status labels (separate commands for reliability)
+    status_commands = []
+    for issue_id, status in status_updates.items():
+        cmd = f'gh issue edit {issue_id} --repo {repo} --add-label "status-{status}"'
+        status_commands.append(cmd)
+    
+    # Execute in phases with error checking
+    phases = [
+        ("Removing old labels", removal_commands),
+        ("Adding priority labels", priority_commands), 
+        ("Adding status labels", status_commands)
+    ]
+    
+    for phase_name, commands in phases:
+        if commands:
+            print(f"{phase_name}: {len(commands)} operations")
+            batch_cmd = ' & '.join(commands) + ' & wait'
+            result = subprocess.run(batch_cmd, shell=True, stderr=subprocess.PIPE, text=True)
+            
+            if result.stderr:
+                print(f"{phase_name} errors: {result.stderr}")
+            
+            if result.returncode != 0:
+                print(f"{phase_name} failed with return code: {result.returncode}")
+                return False
+    
+    return True
 
 
 def update_issue_priority_and_status(repo: str, issue_number: int, priority: str, status: str) -> bool:
