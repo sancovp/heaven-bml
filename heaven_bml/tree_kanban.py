@@ -600,7 +600,7 @@ def sync_slot_map_to_priorities(slot_map: dict, repo: str = 'sancovp/heaven-base
     import json
     
     # BML workflow order (learn is highest priority)
-    lane_order = ['learn', 'measure', 'build', 'plan', 'backlog']
+    lane_order = ['learn', 'measure', 'build', 'plan', 'backlog', 'blocked', 'archived']
     
     # First, get ALL issues in the repo to clear their priorities
     cmd = f'gh issue list --repo {repo} --json number --limit 1000'
