@@ -13,6 +13,7 @@ from dataclasses import dataclass
 class Issue:
     number: int
     title: str
+    body: str
     state: str
     labels: List[str]
     assignees: List[str]
@@ -42,7 +43,7 @@ VALID_TRANSITIONS = {
 def gh_search_issues(repo: str, label: str) -> List[Issue]:
     """Search GitHub issues by label"""
     try:
-        cmd = f'gh issue list --repo {repo} --label "{label}" --json number,title,state,labels,assignees,url --limit 100'
+        cmd = f'gh issue list --repo {repo} --label "{label}" --json number,title,body,state,labels,assignees,url --limit 100'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
         issues_data = json.loads(result.stdout)
         
@@ -50,7 +51,8 @@ def gh_search_issues(repo: str, label: str) -> List[Issue]:
         for issue_data in issues_data:
             issue = Issue(
                 number=issue_data['number'],
-                title=issue_data['title'], 
+                title=issue_data['title'],
+                body=issue_data['body'] or '',
                 state=issue_data['state'],
                 labels=[label['name'] for label in issue_data['labels']],
                 assignees=[assignee['login'] for assignee in issue_data['assignees']], 
