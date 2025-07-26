@@ -43,7 +43,7 @@ VALID_TRANSITIONS = {
 def gh_search_issues(repo: str, label: str) -> List[Issue]:
     """Search GitHub issues by label"""
     try:
-        cmd = f'gh issue list --repo {repo} --label "{label}" --json number,title,body,state,labels,assignees,url --limit 100'
+        cmd = f'gh issue list --repo {repo} --label "{label}" --json number,title,body,state,labels,assignees,url'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
         issues_data = json.loads(result.stdout)
         
@@ -75,19 +75,38 @@ def construct_kanban_from_labels(repo: str = 'sancovp/heaven-base') -> KanbanBoa
     """Construct kanban board from GitHub issue labels"""
     print(f"Constructing kanban board for {repo}...")
     
-    # Get all issues with status labels
-    all_issues = []
-    statuses = ['backlog', 'plan', 'build', 'measure', 'learn', 'blocked', 'archived']
-    
-    for status in statuses:
-        status_issues = gh_search_issues(repo, f'status-{status}')
-        all_issues.extend(status_issues)
+    # Get ALL issues in the repo (not just those with status labels)
+    try:
+        cmd = f'gh issue list --repo {repo} --json number,title,body,state,labels,assignees,url'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+        issues_data = json.loads(result.stdout)
+        
+        all_issues = []
+        for issue_data in issues_data:
+            issue = Issue(
+                number=issue_data['number'],
+                title=issue_data['title'],
+                body=issue_data['body'] or '',
+                state=issue_data['state'],
+                labels=[label['name'] for label in issue_data['labels']],
+                assignees=[assignee['login'] for assignee in issue_data['assignees']], 
+                url=issue_data['url']
+            )
+            all_issues.append(issue)
+            
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting all issues: {e.stderr}")
+        return KanbanBoard([], [], [], [], [], [], [])
     
     # Organize by status
     board = KanbanBoard([], [], [], [], [], [], [])
     
     for issue in all_issues:
         status = get_issue_status(issue)
+        # If no status label found, put in backlog
+        if status is None:
+            status = 'backlog'
+            
         if status == 'backlog':
             board.backlog.append(issue)
         elif status == 'plan':
