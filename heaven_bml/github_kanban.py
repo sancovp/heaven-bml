@@ -77,7 +77,7 @@ def construct_kanban_from_labels(repo: str = 'sancovp/heaven-base') -> KanbanBoa
     
     # Get ALL issues in the repo (not just those with status labels)
     try:
-        cmd = f'gh issue list --repo {repo} --json number,title,body,state,labels,assignees,url'
+        cmd = f'gh issue list --repo {repo} --json number,title,body,state,labels,assignees,url --limit 1000'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
         issues_data = json.loads(result.stdout)
         
